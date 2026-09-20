@@ -1,0 +1,24 @@
+# ==============================================================================
+# VoxFlow V2 — Python Dependencies
+# ==============================================================================
+
+# Core Numerical & Tabular Processing
+numpy>=1.24.0,<2.0.0
+scipy>=1.10.0
+pandas>=2.0.0
+
+# Classical Machine Learning & Metrics (Model 1 & Multi-label Evaluations)
+scikit-learn>=1.2.0
+
+# Deep Learning Backbone (Model 2: HuBERT, Model 3: Wav2Vec2)
+torch>=2.2.0
+transformers==4.38.2
+
+# Optional Accelerations & Utilities
+accelerate>=0.20.0
+tqdm>=4.65.0
+
+# Objective 2: Application & Runtime (REST API & Clinical Monitoring Dashboard)
+flask>=3.0.0
+streamlit>=1.30.0
+plotly>=5.18.0

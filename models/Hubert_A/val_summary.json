@@ -1,0 +1,49 @@
+{
+  "model_architecture": "HuBERT Multi-Label Classifier (facebook/hubert-base-ls960)",
+  "stage": "A",
+  "encoder_frozen": true,
+  "train_samples": 17555,
+  "val_samples": 6632,
+  "test_samples": 6812,
+  "test_status": "UNTOUCHED",
+  "metrics_validation": {
+    "Repetition": {
+      "auc_roc": 0.8074,
+      "pr_auc": 0.5659,
+      "optimal_threshold": 0.53,
+      "val_f1_optimal": 0.5372,
+      "val_precision": 0.5275,
+      "val_recall": 0.5473,
+      "val_f1_default_0.5": 0.5313
+    },
+    "Prolongation": {
+      "auc_roc": 0.8368,
+      "pr_auc": 0.4458,
+      "optimal_threshold": 0.7,
+      "val_f1_optimal": 0.4647,
+      "val_precision": 0.4602,
+      "val_recall": 0.4693,
+      "val_f1_default_0.5": 0.4287
+    },
+    "Block": {
+      "auc_roc": 0.7256,
+      "pr_auc": 0.2777,
+      "optimal_threshold": 0.5,
+      "val_f1_optimal": 0.3506,
+      "val_precision": 0.254,
+      "val_recall": 0.5657,
+      "val_f1_default_0.5": 0.3506
+    }
+  },
+  "mean_metrics": {
+    "macro_f1": 0.4508,
+    "mean_pr_auc": 0.4298,
+    "mean_roc_auc": 0.7899
+  },
+  "optimal_thresholds": {
+    "Repetition": 0.53,
+    "Prolongation": 0.7,
+    "Block": 0.5
+  },
+  "checkpoint_path": "/kaggle/working/hubert_stageA/hubert_stage_A_best.pt"
+}

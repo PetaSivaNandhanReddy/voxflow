@@ -1,0 +1,116 @@
+[
+  {
+    "epoch": 1,
+    "train_loss": 0.8798,
+    "val_loss": 0.9611,
+    "val_macro_f1": 0.4586,
+    "val_mean_pr_auc": 0.4451,
+    "val_mean_roc_auc": 0.8006,
+    "class_metrics": {
+      "Repetition": {
+        "auc_roc": 0.8176,
+        "pr_auc": 0.5887,
+        "optimal_threshold": 0.6,
+        "val_f1_optimal": 0.5459,
+        "val_precision": 0.5106,
+        "val_recall": 0.5864,
+        "val_f1_default_0.5": 0.5326
+      },
+      "Prolongation": {
+        "auc_roc": 0.847,
+        "pr_auc": 0.4571,
+        "optimal_threshold": 0.77,
+        "val_f1_optimal": 0.473,
+        "val_precision": 0.4766,
+        "val_recall": 0.4693,
+        "val_f1_default_0.5": 0.4126
+      },
+      "Block": {
+        "auc_roc": 0.7371,
+        "pr_auc": 0.2896,
+        "optimal_threshold": 0.58,
+        "val_f1_optimal": 0.3569,
+        "val_precision": 0.2519,
+        "val_recall": 0.6118,
+        "val_f1_default_0.5": 0.3385
+      }
+    },
+    "elapsed_seconds": 139.1
+  },
+  {
+    "epoch": 2,
+    "train_loss": 0.8396,
+    "val_loss": 0.9522,
+    "val_macro_f1": 0.4656,
+    "val_mean_pr_auc": 0.4553,
+    "val_mean_roc_auc": 0.8043,
+    "class_metrics": {
+      "Repetition": {
+        "auc_roc": 0.8254,
+        "pr_auc": 0.6024,
+        "optimal_threshold": 0.64,
+        "val_f1_optimal": 0.5578,
+        "val_precision": 0.5028,
+        "val_recall": 0.6263,
+        "val_f1_default_0.5": 0.5225
+      },
+      "Prolongation": {
+        "auc_roc": 0.849,
+        "pr_auc": 0.4706,
+        "optimal_threshold": 0.82,
+        "val_f1_optimal": 0.4815,
+        "val_precision": 0.4943,
+        "val_recall": 0.4693,
+        "val_f1_default_0.5": 0.3875
+      },
+      "Block": {
+        "auc_roc": 0.7384,
+        "pr_auc": 0.2928,
+        "optimal_threshold": 0.62,
+        "val_f1_optimal": 0.3574,
+        "val_precision": 0.2462,
+        "val_recall": 0.6521,
+        "val_f1_default_0.5": 0.3213
+      }
+    },
+    "elapsed_seconds": 139.6
+  },
+  {
+    "epoch": 3,
+    "train_loss": 0.8106,
+    "val_loss": 0.9781,
+    "val_macro_f1": 0.4718,
+    "val_mean_pr_auc": 0.4634,
+    "val_mean_roc_auc": 0.8082,
+    "class_metrics": {
+      "Repetition": {
+        "auc_roc": 0.828,
+        "pr_auc": 0.6103,
+        "optimal_threshold": 0.68,
+        "val_f1_optimal": 0.5657,
+        "val_precision": 0.5229,
+        "val_recall": 0.6161,
+        "val_f1_default_0.5": 0.5247
+      },
+      "Prolongation": {
+        "auc_roc": 0.8541,
+        "pr_auc": 0.4822,
+        "optimal_threshold": 0.68,
+        "val_f1_optimal": 0.491,
+        "val_precision": 0.4638,
+        "val_recall": 0.5215,
+        "val_f1_default_0.5": 0.4735
+      },
+      "Block": {
+        "auc_roc": 0.7426,
+        "pr_auc": 0.2977,
+        "optimal_threshold": 0.55,
+        "val_f1_optimal": 0.3587,
+        "val_precision": 0.2592,
+        "val_recall": 0.5822,
+        "val_f1_default_0.5": 0.3543
+      }
+    },
+    "elapsed_seconds": 138.8
+  }
+]

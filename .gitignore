@@ -1,0 +1,76 @@
+# ==============================================================================
+# VoxFlow V2 — .gitignore
+# ==============================================================================
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Operating System & IDE artifacts
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.vscode/
+.idea/
+
+# Bulky Model Checkpoints & Large Weights
+# (Checkpoints > 100MB hosted externally on Hugging Face / Kaggle / Releases)
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+models/cache/*.npz
+
+# Large Audio Files & Raw Archives
+*.wav
+*.mp3
+*.m4a
+*.flac
+*.ogg
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.gz
+dataset/raw/
+dataset/audio/
+
+# Database files & local test DBs
+*.db
+*.sqlite
+*.sqlite3
+app/*.db
+
+# Secrets, tokens, and credentials
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+*token*
+kaggle.json
+
+# Kaggle temporary / cache / output directories & files
+kaggle_working/
+kaggle_output/
+__notebook_source__.ipynb
+*.tmp
+*.log

@@ -1,0 +1,1071 @@
+{
+  "totals": {
+    "total_sep28k_clips": 28177,
+    "total_fluencybank_clips": 4144,
+    "total_available_metadata_clips": 32321,
+    "audio_available_clips": 20906,
+    "audio_unavailable_clips": 11415,
+    "sep28k_episodes_total": 385,
+    "sep28k_episodes_live_200": 258,
+    "sep28k_episodes_broken_404": 122,
+    "sep28k_episodes_timeout": 5,
+    "fluencybank_episodes_total": 34,
+    "fluencybank_episodes_auth_required": 34,
+    "duplicates": {
+      "sep28k_clip_id_duplicates": 0,
+      "sep28k_exact_timestamp_duplicates": 0,
+      "fluencybank_clip_id_duplicates": 0,
+      "fluencybank_exact_timestamp_duplicates": 0
+    }
+  },
+  "speakers": {
+    "sep28k_unique_speakers": 497,
+    "sep28k_unassigned_clips": 160,
+    "fluencybank_unique_speakers": 33,
+    "total_unique_speakers": 530,
+    "clips_per_speaker_sep": {
+      "min": 1,
+      "max": 8972,
+      "mean": 56.372233400402415,
+      "median": 13.0,
+      "std": 434.4429927913742,
+      "top_10": {
+        "Pamela Mertz": 8972,
+        "Daniele Rossi": 2565,
+        "Pedro Pe\u00f1a": 1857,
+        "Peter Reitzes": 1819,
+        "Chaya Goldstein": 481,
+        "Reuben Schuff": 477,
+        "TJ Travor": 390,
+        "Evan Sherman": 381,
+        "Christopher Constantino": 174,
+        "StrongVoices_23_0": 166
+      }
+    },
+    "episodes_per_speaker_sep": {
+      "min": 1,
+      "max": 134,
+      "mean": 1.659959758551308,
+      "median": 1.0
+    },
+    "clips_per_speaker_fluencybank": {
+      "min": 66,
+      "max": 197,
+      "mean": 125.57575757575758,
+      "median": 118.0,
+      "std": 38.812071497659
+    }
+  },
+  "source_distribution": {
+    "WomenWhoStutter": 9163,
+    "StutterTalk": 5064,
+    "FluencyBank": 4144,
+    "StutteringIsCool": 4013,
+    "HeStutters": 3684,
+    "MyStutteringLife": 2339,
+    "StrongVoices": 2308,
+    "IStutterSoWhat": 870,
+    "HVSA": 736
+  },
+  "show_audio_breakdown": {
+    "HVSA": {
+      "total_clips": 736,
+      "available_clips": 736,
+      "unavailable_clips": 0,
+      "url_status_counts": {
+        "200": 736
+      }
+    },
+    "HeStutters": {
+      "total_clips": 3684,
+      "available_clips": 3684,
+      "unavailable_clips": 0,
+      "url_status_counts": {
+        "200": 3684
+      }
+    },
+    "IStutterSoWhat": {
+      "total_clips": 870,
+      "available_clips": 0,
+      "unavailable_clips": 870,
+      "url_status_counts": {
+        "TimeoutError": 870
+      }
+    },
+    "MyStutteringLife": {
+      "total_clips": 2339,
+      "available_clips": 2259,
+      "unavailable_clips": 80,
+      "url_status_counts": {
+        "200": 2259,
+        "404": 80
+      }
+    },
+    "StrongVoices": {
+      "total_clips": 2308,
+      "available_clips": 0,
+      "unavailable_clips": 2308,
+      "url_status_counts": {
+        "404": 2308
+      }
+    },
+    "StutterTalk": {
+      "total_clips": 5064,
+      "available_clips": 5064,
+      "unavailable_clips": 0,
+      "url_status_counts": {
+        "200": 5064
+      }
+    },
+    "StutteringIsCool": {
+      "total_clips": 4013,
+      "available_clips": 0,
+      "unavailable_clips": 4013,
+      "url_status_counts": {
+        "404": 4013
+      }
+    },
+    "WomenWhoStutter": {
+      "total_clips": 9163,
+      "available_clips": 9163,
+      "unavailable_clips": 0,
+      "url_status_counts": {
+        "200": 9163
+      }
+    }
+  },
+  "sep28k_labels": {
+    "SoundRep": {
+      "0/3": 22563,
+      "1/3": 3272,
+      "2/3": 1479,
+      "3/3": 863,
+      "ge_1": 5614,
+      "ge_2": 2342,
+      "eq_3": 863,
+      "pct_ge_1": 19.92405153139085,
+      "pct_ge_2": 8.311743620683536,
+      "pct_eq_3": 3.0627817013876566
+    },
+    "WordRep": {
+      "0/3": 23556,
+      "1/3": 1851,
+      "2/3": 1160,
+      "3/3": 1610,
+      "ge_1": 4621,
+      "ge_2": 2770,
+      "eq_3": 1610,
+      "pct_ge_1": 16.399900628171913,
+      "pct_ge_2": 9.830712992866522,
+      "pct_eq_3": 5.7138801149874014
+    },
+    "Prolongation": {
+      "0/3": 19631,
+      "1/3": 5734,
+      "2/3": 2022,
+      "3/3": 790,
+      "ge_1": 8546,
+      "ge_2": 2812,
+      "eq_3": 790,
+      "pct_ge_1": 30.329701529616354,
+      "pct_ge_2": 9.97977073499663,
+      "pct_eq_3": 2.8037051495900913
+    },
+    "Block": {
+      "0/3": 16207,
+      "1/3": 8600,
+      "2/3": 2842,
+      "3/3": 528,
+      "ge_1": 11970,
+      "ge_2": 3370,
+      "eq_3": 528,
+      "pct_ge_1": 42.481456507080246,
+      "pct_ge_2": 11.960109309010896,
+      "pct_eq_3": 1.8738687582070483
+    },
+    "Interjection": {
+      "0/3": 18519,
+      "1/3": 3685,
+      "2/3": 2595,
+      "3/3": 3378,
+      "ge_1": 9658,
+      "ge_2": 5973,
+      "eq_3": 3378,
+      "pct_ge_1": 34.276182702203926,
+      "pct_ge_2": 21.198140327217235,
+      "pct_eq_3": 11.98850125989282
+    },
+    "NoStutteredWords": {
+      "0/3": 6805,
+      "1/3": 5326,
+      "2/3": 7460,
+      "3/3": 8586,
+      "ge_1": 21372,
+      "ge_2": 16046,
+      "eq_3": 8586,
+      "pct_ge_1": 75.84909678106257,
+      "pct_ge_2": 56.94715548142102,
+      "pct_eq_3": 30.47166128402598
+    },
+    "NaturalPause": {
+      "0/3": 17994,
+      "1/3": 7789,
+      "2/3": 2122,
+      "3/3": 272,
+      "ge_1": 10183,
+      "ge_2": 2394,
+      "eq_3": 272,
+      "pct_ge_1": 36.13940447883025,
+      "pct_ge_2": 8.496291301416047,
+      "pct_eq_3": 0.9653263299854491
+    },
+    "NoSpeech": {
+      "0/3": 27202,
+      "1/3": 667,
+      "2/3": 178,
+      "3/3": 130,
+      "ge_1": 975,
+      "ge_2": 308,
+      "eq_3": 130,
+      "pct_ge_1": 3.460269013734606,
+      "pct_ge_2": 1.0930901089541116,
+      "pct_eq_3": 0.4613692018312809
+    },
+    "PoorAudioQuality": {
+      "0/3": 25267,
+      "1/3": 2328,
+      "2/3": 481,
+      "3/3": 101,
+      "ge_1": 2910,
+      "ge_2": 582,
+      "eq_3": 101,
+      "pct_ge_1": 10.32757213330021,
+      "pct_ge_2": 2.065514426660042,
+      "pct_eq_3": 0.3584483798843028
+    },
+    "DifficultToUnderstand": {
+      "0/3": 23305,
+      "1/3": 3834,
+      "2/3": 884,
+      "3/3": 154,
+      "ge_1": 4872,
+      "ge_2": 1038,
+      "eq_3": 154,
+      "pct_ge_1": 17.29069808709231,
+      "pct_ge_2": 3.6838556269297653,
+      "pct_eq_3": 0.5465450544770558
+    },
+    "Unsure": {
+      "0/3": 27409,
+      "1/3": 744,
+      "2/3": 24,
+      "3/3": 0,
+      "ge_1": 768,
+      "ge_2": 24,
+      "eq_3": 0,
+      "pct_ge_1": 2.7256272846647978,
+      "pct_ge_2": 0.08517585264577493,
+      "pct_eq_3": 0.0
+    },
+    "Music": {
+      "0/3": 27781,
+      "1/3": 98,
+      "2/3": 99,
+      "3/3": 199,
+      "ge_1": 396,
+      "ge_2": 298,
+      "eq_3": 199,
+      "pct_ge_1": 1.4054015686552863,
+      "pct_ge_2": 1.0576001703517053,
+      "pct_eq_3": 0.7062497781878838
+    },
+    "Repetition_max": {
+      "0/3": 19466,
+      "1/3": 3786,
+      "2/3": 2471,
+      "3/3": 2454,
+      "ge_1": 8711,
+      "ge_2": 4925,
+      "eq_3": 2454,
+      "pct_ge_1": 30.915285516556057,
+      "pct_ge_2": 17.478794761685062,
+      "pct_eq_3": 8.709230933030486
+    }
+  },
+  "sep28k_multilabel": {
+    "threshold_ge_1": {
+      "none_0_targets": 8246,
+      "exactly_1_target": 11831,
+      "exactly_2_targets": 6904,
+      "all_3_targets": 1196,
+      "rep_only": 3022,
+      "pro_only": 3811,
+      "blk_only": 4998,
+      "rep_and_pro": 1128,
+      "rep_and_blk": 3365,
+      "pro_and_blk": 2411,
+      "all_three": 1196,
+      "any_target_event": 19931
+    },
+    "threshold_ge_2": {
+      "none_0_targets": 18150,
+      "exactly_1_target": 8981,
+      "exactly_2_targets": 1012,
+      "all_3_targets": 34,
+      "rep_only": 4087,
+      "pro_only": 2357,
+      "blk_only": 2537,
+      "rep_and_pro": 213,
+      "rep_and_blk": 591,
+      "pro_and_blk": 208,
+      "all_three": 34,
+      "any_target_event": 10027
+    },
+    "threshold_ge_3": {
+      "none_0_targets": 24441,
+      "exactly_1_target": 3700,
+      "exactly_2_targets": 36,
+      "all_3_targets": 0,
+      "rep_only": 2422,
+      "pro_only": 769,
+      "blk_only": 509,
+      "rep_and_pro": 17,
+      "rep_and_blk": 15,
+      "pro_and_blk": 4,
+      "all_three": 0,
+      "any_target_event": 3736
+    }
+  },
+  "fluencybank_labels": {
+    "SoundRep": {
+      "0/3": 2996,
+      "1/3": 599,
+      "2/3": 372,
+      "3/3": 177,
+      "ge_1": 1148,
+      "ge_2": 549,
+      "eq_3": 177,
+      "pct_ge_1": 27.7027027027027,
+      "pct_ge_2": 13.248069498069498,
+      "pct_eq_3": 4.271235521235521
+    },
+    "WordRep": {
+      "0/3": 3204,
+      "1/3": 510,
+      "2/3": 204,
+      "3/3": 226,
+      "ge_1": 940,
+      "ge_2": 430,
+      "eq_3": 226,
+      "pct_ge_1": 22.683397683397683,
+      "pct_ge_2": 10.376447876447877,
+      "pct_eq_3": 5.453667953667954
+    },
+    "Prolongation": {
+      "0/3": 3208,
+      "1/3": 598,
+      "2/3": 217,
+      "3/3": 121,
+      "ge_1": 936,
+      "ge_2": 338,
+      "eq_3": 121,
+      "pct_ge_1": 22.586872586872587,
+      "pct_ge_2": 8.156370656370656,
+      "pct_eq_3": 2.91988416988417
+    },
+    "Block": {
+      "0/3": 2658,
+      "1/3": 1058,
+      "2/3": 364,
+      "3/3": 64,
+      "ge_1": 1486,
+      "ge_2": 428,
+      "eq_3": 64,
+      "pct_ge_1": 35.859073359073356,
+      "pct_ge_2": 10.328185328185329,
+      "pct_eq_3": 1.5444015444015444
+    },
+    "Interjection": {
+      "0/3": 2486,
+      "1/3": 528,
+      "2/3": 498,
+      "3/3": 632,
+      "ge_1": 1658,
+      "ge_2": 1130,
+      "eq_3": 632,
+      "pct_ge_1": 40.00965250965251,
+      "pct_ge_2": 27.268339768339768,
+      "pct_eq_3": 15.250965250965251
+    },
+    "NoStutteredWords": {
+      "0/3": 1270,
+      "1/3": 632,
+      "2/3": 804,
+      "3/3": 1438,
+      "ge_1": 2874,
+      "ge_2": 2242,
+      "eq_3": 1438,
+      "pct_ge_1": 69.35328185328186,
+      "pct_ge_2": 54.102316602316606,
+      "pct_eq_3": 34.7007722007722
+    },
+    "NaturalPause": {
+      "0/3": 3240,
+      "1/3": 791,
+      "2/3": 104,
+      "3/3": 9,
+      "ge_1": 904,
+      "ge_2": 113,
+      "eq_3": 9,
+      "pct_ge_1": 21.814671814671815,
+      "pct_ge_2": 2.726833976833977,
+      "pct_eq_3": 0.2171814671814672
+    },
+    "NoSpeech": {
+      "0/3": 4144,
+      "1/3": 0,
+      "2/3": 0,
+      "3/3": 0,
+      "ge_1": 0,
+      "ge_2": 0,
+      "eq_3": 0,
+      "pct_ge_1": 0.0,
+      "pct_ge_2": 0.0,
+      "pct_eq_3": 0.0
+    },
+    "PoorAudioQuality": {
+      "0/3": 4144,
+      "1/3": 0,
+      "2/3": 0,
+      "3/3": 0,
+      "ge_1": 0,
+      "ge_2": 0,
+      "eq_3": 0,
+      "pct_ge_1": 0.0,
+      "pct_ge_2": 0.0,
+      "pct_eq_3": 0.0
+    },
+    "DifficultToUnderstand": {
+      "0/3": 3693,
+      "1/3": 327,
+      "2/3": 108,
+      "3/3": 16,
+      "ge_1": 451,
+      "ge_2": 124,
+      "eq_3": 16,
+      "pct_ge_1": 10.883204633204633,
+      "pct_ge_2": 2.9922779922779923,
+      "pct_eq_3": 0.3861003861003861
+    },
+    "Unsure": {
+      "0/3": 3935,
+      "1/3": 194,
+      "2/3": 13,
+      "3/3": 2,
+      "ge_1": 209,
+      "ge_2": 15,
+      "eq_3": 2,
+      "pct_ge_1": 5.043436293436294,
+      "pct_ge_2": 0.36196911196911197,
+      "pct_eq_3": 0.04826254826254826
+    },
+    "Music": {
+      "0/3": 4144,
+      "1/3": 0,
+      "2/3": 0,
+      "3/3": 0,
+      "ge_1": 0,
+      "ge_2": 0,
+      "eq_3": 0,
+      "pct_ge_1": 0.0,
+      "pct_ge_2": 0.0,
+      "pct_eq_3": 0.0
+    },
+    "Repetition_max": {
+      "0/3": 2432,
+      "1/3": 791,
+      "2/3": 523,
+      "3/3": 398,
+      "ge_1": 1712,
+      "ge_2": 921,
+      "eq_3": 398,
+      "pct_ge_1": 41.312741312741316,
+      "pct_ge_2": 22.224903474903478,
+      "pct_eq_3": 9.604247104247104
+    }
+  },
+  "fluencybank_multilabel": {
+    "threshold_ge_1": {
+      "none_0_targets": 1451,
+      "exactly_1_target": 1456,
+      "exactly_2_targets": 1033,
+      "all_3_targets": 204,
+      "rep_only": 629,
+      "pro_only": 415,
+      "blk_only": 412,
+      "rep_and_pro": 163,
+      "rep_and_blk": 716,
+      "pro_and_blk": 154,
+      "all_three": 204,
+      "any_target_event": 2693
+    },
+    "threshold_ge_2": {
+      "none_0_targets": 2617,
+      "exactly_1_target": 1370,
+      "exactly_2_targets": 154,
+      "all_3_targets": 3,
+      "rep_only": 787,
+      "pro_only": 271,
+      "blk_only": 312,
+      "rep_and_pro": 41,
+      "rep_and_blk": 90,
+      "pro_and_blk": 23,
+      "all_three": 3,
+      "any_target_event": 1527
+    },
+    "threshold_ge_3": {
+      "none_0_targets": 3565,
+      "exactly_1_target": 575,
+      "exactly_2_targets": 4,
+      "all_3_targets": 0,
+      "rep_only": 395,
+      "pro_only": 117,
+      "blk_only": 63,
+      "rep_and_pro": 3,
+      "rep_and_blk": 0,
+      "pro_and_blk": 1,
+      "all_three": 0,
+      "any_target_event": 579
+    }
+  },
+  "combined_labels": {
+    "SoundRep": {
+      "0/3": 25559,
+      "1/3": 3871,
+      "2/3": 1851,
+      "3/3": 1040,
+      "ge_1": 6762,
+      "ge_2": 2891,
+      "eq_3": 1040,
+      "pct_ge_1": 20.921382382970823,
+      "pct_ge_2": 8.944648989820859,
+      "pct_eq_3": 3.2177222239410908
+    },
+    "WordRep": {
+      "0/3": 26760,
+      "1/3": 2361,
+      "2/3": 1364,
+      "3/3": 1836,
+      "ge_1": 5561,
+      "ge_2": 3200,
+      "eq_3": 1836,
+      "pct_ge_1": 17.205532007054238,
+      "pct_ge_2": 9.900683765972587,
+      "pct_eq_3": 5.680517310726772
+    },
+    "Prolongation": {
+      "0/3": 22839,
+      "1/3": 6332,
+      "2/3": 2239,
+      "3/3": 911,
+      "ge_1": 9482,
+      "ge_2": 3150,
+      "eq_3": 911,
+      "pct_ge_1": 29.33696358404752,
+      "pct_ge_2": 9.745985582129265,
+      "pct_eq_3": 2.8186009096253213
+    },
+    "Block": {
+      "0/3": 18865,
+      "1/3": 9658,
+      "2/3": 3206,
+      "3/3": 592,
+      "ge_1": 13456,
+      "ge_2": 3798,
+      "eq_3": 592,
+      "pct_ge_1": 41.63237523591473,
+      "pct_ge_2": 11.750874044738714,
+      "pct_eq_3": 1.8316264967049287
+    },
+    "Interjection": {
+      "0/3": 21005,
+      "1/3": 4213,
+      "2/3": 3093,
+      "3/3": 4010,
+      "ge_1": 11316,
+      "ge_2": 7103,
+      "eq_3": 4010,
+      "pct_ge_1": 35.01129296742056,
+      "pct_ge_2": 21.976423996782277,
+      "pct_eq_3": 12.406794344234399
+    },
+    "NoStutteredWords": {
+      "0/3": 8075,
+      "1/3": 5958,
+      "2/3": 8264,
+      "3/3": 10024,
+      "ge_1": 24246,
+      "ge_2": 18288,
+      "eq_3": 10024,
+      "pct_ge_1": 75.01624330930355,
+      "pct_ge_2": 56.58240772253333,
+      "pct_eq_3": 31.01389189690913
+    },
+    "NaturalPause": {
+      "0/3": 21234,
+      "1/3": 8580,
+      "2/3": 2226,
+      "3/3": 281,
+      "ge_1": 11087,
+      "ge_2": 2507,
+      "eq_3": 281,
+      "pct_ge_1": 34.30277528541815,
+      "pct_ge_2": 7.756566937904149,
+      "pct_eq_3": 0.8694037931994678
+    },
+    "NoSpeech": {
+      "0/3": 31346,
+      "1/3": 667,
+      "2/3": 178,
+      "3/3": 130,
+      "ge_1": 975,
+      "ge_2": 308,
+      "eq_3": 130,
+      "pct_ge_1": 3.0166145849447727,
+      "pct_ge_2": 0.9529408124748615,
+      "pct_eq_3": 0.40221527799263634
+    },
+    "PoorAudioQuality": {
+      "0/3": 29411,
+      "1/3": 2328,
+      "2/3": 481,
+      "3/3": 101,
+      "ge_1": 2910,
+      "ge_2": 582,
+      "eq_3": 101,
+      "pct_ge_1": 9.003434299681322,
+      "pct_ge_2": 1.8006868599362644,
+      "pct_eq_3": 0.3124903313635098
+    },
+    "DifficultToUnderstand": {
+      "0/3": 26998,
+      "1/3": 4161,
+      "2/3": 992,
+      "3/3": 170,
+      "ge_1": 5323,
+      "ge_2": 1162,
+      "eq_3": 170,
+      "pct_ge_1": 16.469168651960025,
+      "pct_ge_2": 3.5951857925187958,
+      "pct_eq_3": 0.5259738250672937
+    },
+    "Unsure": {
+      "0/3": 31344,
+      "1/3": 938,
+      "2/3": 37,
+      "3/3": 2,
+      "ge_1": 977,
+      "ge_2": 39,
+      "eq_3": 2,
+      "pct_ge_1": 3.0228025122985054,
+      "pct_ge_2": 0.12066458339779092,
+      "pct_eq_3": 0.006187927353732867
+    },
+    "Music": {
+      "0/3": 31925,
+      "1/3": 98,
+      "2/3": 99,
+      "3/3": 199,
+      "ge_1": 396,
+      "ge_2": 298,
+      "eq_3": 199,
+      "pct_ge_1": 1.2252096160391077,
+      "pct_ge_2": 0.9220011757061972,
+      "pct_eq_3": 0.6156987716964203
+    },
+    "Repetition_max": {
+      "0/3": 21898,
+      "1/3": 4577,
+      "2/3": 2994,
+      "3/3": 2852,
+      "ge_1": 10423,
+      "ge_2": 5846,
+      "eq_3": 2852,
+      "pct_ge_1": 32.248383403978835,
+      "pct_ge_2": 18.087311654961173,
+      "pct_eq_3": 8.823984406423069
+    }
+  },
+  "combined_multilabel": {
+    "threshold_ge_1": {
+      "none_0_targets": 9697,
+      "exactly_1_target": 13287,
+      "exactly_2_targets": 7937,
+      "all_3_targets": 1400,
+      "rep_only": 3651,
+      "pro_only": 4226,
+      "blk_only": 5410,
+      "rep_and_pro": 1291,
+      "rep_and_blk": 4081,
+      "pro_and_blk": 2565,
+      "all_three": 1400,
+      "any_target_event": 22624
+    },
+    "threshold_ge_2": {
+      "none_0_targets": 20767,
+      "exactly_1_target": 10351,
+      "exactly_2_targets": 1166,
+      "all_3_targets": 37,
+      "rep_only": 4874,
+      "pro_only": 2628,
+      "blk_only": 2849,
+      "rep_and_pro": 254,
+      "rep_and_blk": 681,
+      "pro_and_blk": 231,
+      "all_three": 37,
+      "any_target_event": 11554
+    },
+    "threshold_ge_3": {
+      "none_0_targets": 28006,
+      "exactly_1_target": 4275,
+      "exactly_2_targets": 40,
+      "all_3_targets": 0,
+      "rep_only": 2817,
+      "pro_only": 886,
+      "blk_only": 572,
+      "rep_and_pro": 20,
+      "rep_and_blk": 15,
+      "pro_and_blk": 5,
+      "all_three": 0,
+      "any_target_event": 4315
+    }
+  },
+  "partitions_audit": {
+    "SEP28k-E": {
+      "train": {
+        "clips": 15213,
+        "available_audio_clips": 12593,
+        "speakers": 4,
+        "nan_speaker_clips": 0,
+        "repetition_ge2": 2653,
+        "prolongation_ge2": 1502,
+        "block_ge2": 1760,
+        "interjection_ge2": 3490,
+        "multilabel_0": 9870,
+        "multilabel_1": 4791,
+        "multilabel_2": 532,
+        "multilabel_3": 20,
+        "shows": {
+          "WomenWhoStutter": 6339,
+          "HeStutters": 2633,
+          "StutteringIsCool": 2565,
+          "MyStutteringLife": 1857,
+          "StutterTalk": 1819
+        }
+      },
+      "dev": {
+        "clips": 6402,
+        "available_audio_clips": 4147,
+        "speakers": 246,
+        "nan_speaker_clips": 0,
+        "repetition_ge2": 1181,
+        "prolongation_ge2": 645,
+        "block_ge2": 822,
+        "interjection_ge2": 1203,
+        "multilabel_0": 4033,
+        "multilabel_1": 2098,
+        "multilabel_2": 263,
+        "multilabel_3": 8,
+        "shows": {
+          "StutterTalk": 1601,
+          "WomenWhoStutter": 1481,
+          "StrongVoices": 921,
+          "IStutterSoWhat": 741,
+          "StutteringIsCool": 593,
+          "HeStutters": 543,
+          "MyStutteringLife": 303,
+          "HVSA": 219
+        }
+      },
+      "test": {
+        "clips": 6562,
+        "available_audio_clips": 4166,
+        "speakers": 247,
+        "nan_speaker_clips": 160,
+        "repetition_ge2": 1091,
+        "prolongation_ge2": 665,
+        "block_ge2": 788,
+        "interjection_ge2": 1280,
+        "multilabel_0": 4247,
+        "multilabel_1": 2092,
+        "multilabel_2": 217,
+        "multilabel_3": 6,
+        "shows": {
+          "StutterTalk": 1644,
+          "StrongVoices": 1387,
+          "WomenWhoStutter": 1343,
+          "StutteringIsCool": 855,
+          "HVSA": 517,
+          "HeStutters": 508,
+          "MyStutteringLife": 179,
+          "IStutterSoWhat": 129
+        }
+      },
+      "overlaps": {
+        "train_dev": 0,
+        "train_test": 0,
+        "dev_test": 0
+      }
+    },
+    "SEP28k-T": {
+      "train": {
+        "clips": 6562,
+        "available_audio_clips": 4166,
+        "speakers": 247,
+        "nan_speaker_clips": 160,
+        "repetition_ge2": 1091,
+        "prolongation_ge2": 665,
+        "block_ge2": 788,
+        "interjection_ge2": 1280,
+        "multilabel_0": 4247,
+        "multilabel_1": 2092,
+        "multilabel_2": 217,
+        "multilabel_3": 6,
+        "shows": {
+          "StutterTalk": 1644,
+          "StrongVoices": 1387,
+          "WomenWhoStutter": 1343,
+          "StutteringIsCool": 855,
+          "HVSA": 517,
+          "HeStutters": 508,
+          "MyStutteringLife": 179,
+          "IStutterSoWhat": 129
+        }
+      },
+      "dev": {
+        "clips": 6402,
+        "available_audio_clips": 4147,
+        "speakers": 246,
+        "nan_speaker_clips": 0,
+        "repetition_ge2": 1181,
+        "prolongation_ge2": 645,
+        "block_ge2": 822,
+        "interjection_ge2": 1203,
+        "multilabel_0": 4033,
+        "multilabel_1": 2098,
+        "multilabel_2": 263,
+        "multilabel_3": 8,
+        "shows": {
+          "StutterTalk": 1601,
+          "WomenWhoStutter": 1481,
+          "StrongVoices": 921,
+          "IStutterSoWhat": 741,
+          "StutteringIsCool": 593,
+          "HeStutters": 543,
+          "MyStutteringLife": 303,
+          "HVSA": 219
+        }
+      },
+      "test": {
+        "clips": 15213,
+        "available_audio_clips": 12593,
+        "speakers": 4,
+        "nan_speaker_clips": 0,
+        "repetition_ge2": 2653,
+        "prolongation_ge2": 1502,
+        "block_ge2": 1760,
+        "interjection_ge2": 3490,
+        "multilabel_0": 9870,
+        "multilabel_1": 4791,
+        "multilabel_2": 532,
+        "multilabel_3": 20,
+        "shows": {
+          "WomenWhoStutter": 6339,
+          "HeStutters": 2633,
+          "StutteringIsCool": 2565,
+          "MyStutteringLife": 1857,
+          "StutterTalk": 1819
+        }
+      },
+      "overlaps": {
+        "train_dev": 0,
+        "train_test": 0,
+        "dev_test": 0
+      }
+    },
+    "SEP28k-D": {
+      "train": {
+        "clips": 6402,
+        "available_audio_clips": 4147,
+        "speakers": 246,
+        "nan_speaker_clips": 0,
+        "repetition_ge2": 1181,
+        "prolongation_ge2": 645,
+        "block_ge2": 822,
+        "interjection_ge2": 1203,
+        "multilabel_0": 4033,
+        "multilabel_1": 2098,
+        "multilabel_2": 263,
+        "multilabel_3": 8,
+        "shows": {
+          "StutterTalk": 1601,
+          "WomenWhoStutter": 1481,
+          "StrongVoices": 921,
+          "IStutterSoWhat": 741,
+          "StutteringIsCool": 593,
+          "HeStutters": 543,
+          "MyStutteringLife": 303,
+          "HVSA": 219
+        }
+      },
+      "dev": {
+        "clips": 6562,
+        "available_audio_clips": 4166,
+        "speakers": 247,
+        "nan_speaker_clips": 160,
+        "repetition_ge2": 1091,
+        "prolongation_ge2": 665,
+        "block_ge2": 788,
+        "interjection_ge2": 1280,
+        "multilabel_0": 4247,
+        "multilabel_1": 2092,
+        "multilabel_2": 217,
+        "multilabel_3": 6,
+        "shows": {
+          "StutterTalk": 1644,
+          "StrongVoices": 1387,
+          "WomenWhoStutter": 1343,
+          "StutteringIsCool": 855,
+          "HVSA": 517,
+          "HeStutters": 508,
+          "MyStutteringLife": 179,
+          "IStutterSoWhat": 129
+        }
+      },
+      "test": {
+        "clips": 15213,
+        "available_audio_clips": 12593,
+        "speakers": 4,
+        "nan_speaker_clips": 0,
+        "repetition_ge2": 2653,
+        "prolongation_ge2": 1502,
+        "block_ge2": 1760,
+        "interjection_ge2": 3490,
+        "multilabel_0": 9870,
+        "multilabel_1": 4791,
+        "multilabel_2": 532,
+        "multilabel_3": 20,
+        "shows": {
+          "WomenWhoStutter": 6339,
+          "HeStutters": 2633,
+          "StutteringIsCool": 2565,
+          "MyStutteringLife": 1857,
+          "StutterTalk": 1819
+        }
+      },
+      "overlaps": {
+        "train_dev": 0,
+        "train_test": 0,
+        "dev_test": 0
+      }
+    }
+  },
+  "candidate_unified_split": {
+    "train": {
+      "clips": 18104,
+      "pct_clips": 56.013118405989914,
+      "available_audio_clips": 12593,
+      "speakers": 27,
+      "repetition_ge2": 3205,
+      "prolongation_ge2": 1728,
+      "block_ge2": 2062,
+      "interjection_ge2": 4199,
+      "multilabel_0": 11785,
+      "multilabel_1": 5665,
+      "multilabel_2": 632,
+      "multilabel_3": 22,
+      "shows": {
+        "WomenWhoStutter": 6339,
+        "FluencyBank": 2891,
+        "HeStutters": 2633,
+        "StutteringIsCool": 2565,
+        "MyStutteringLife": 1857,
+        "StutterTalk": 1819
+      }
+    },
+    "val": {
+      "clips": 7065,
+      "pct_clips": 21.858853377061354,
+      "available_audio_clips": 4147,
+      "speakers": 251,
+      "repetition_ge2": 1360,
+      "prolongation_ge2": 708,
+      "block_ge2": 884,
+      "interjection_ge2": 1420,
+      "multilabel_0": 4412,
+      "multilabel_1": 2362,
+      "multilabel_2": 283,
+      "multilabel_3": 8,
+      "shows": {
+        "StutterTalk": 1601,
+        "WomenWhoStutter": 1481,
+        "StrongVoices": 921,
+        "IStutterSoWhat": 741,
+        "FluencyBank": 663,
+        "StutteringIsCool": 593,
+        "HeStutters": 543,
+        "MyStutteringLife": 303,
+        "HVSA": 219
+      }
+    },
+    "test": {
+      "clips": 7152,
+      "pct_clips": 22.128028216948735,
+      "available_audio_clips": 4166,
+      "speakers": 252,
+      "repetition_ge2": 1281,
+      "prolongation_ge2": 714,
+      "block_ge2": 852,
+      "interjection_ge2": 1484,
+      "multilabel_0": 4570,
+      "multilabel_1": 2324,
+      "multilabel_2": 251,
+      "multilabel_3": 7,
+      "shows": {
+        "StutterTalk": 1644,
+        "StrongVoices": 1387,
+        "WomenWhoStutter": 1343,
+        "StutteringIsCool": 855,
+        "FluencyBank": 590,
+        "HVSA": 517,
+        "HeStutters": 508,
+        "MyStutteringLife": 179,
+        "IStutterSoWhat": 129
+      }
+    },
+    "speaker_overlap": {
+      "train_val": 0,
+      "train_test": 0,
+      "val_test": 0
+    }
+  },
+  "annotation_conflicts_and_quality": {
+    "no_stuttered_words_ge2_and_stutter_ge2": 204,
+    "no_speech_ge2_and_stutter_ge2": 26,
+    "unsure_ge2": 39,
+    "poor_audio_quality_ge2": 582,
+    "difficult_to_understand_ge2": 1162,
+    "natural_pause_ge2": 2507,
+    "music_ge2": 298,
+    "no_speech_ge2": 308
+  },
+  "disk_space": {
+    "available_gb": 51.0,
+    "sep28k_live_raw_episodes_gb": 9.0,
+    "sep28k_all_raw_episodes_estimated_gb": 32.0,
+    "sep28k_extracted_clips_live_gb": 1.83,
+    "sep28k_extracted_clips_all_gb": 2.7,
+    "fluencybank_audio_clips_gb": 0.4,
+    "total_clipped_corpus_gb": 3.1
+  }
+}

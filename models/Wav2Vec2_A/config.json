@@ -1,0 +1,27 @@
+{
+  "pretrained_model": "facebook/wav2vec2-base",
+  "stage": "A",
+  "encoder_frozen": true,
+  "unfrozen_encoder_layers": 0,
+  "random_seed": 42,
+  "batch_size": 16,
+  "grad_accum_steps": 2,
+  "effective_batch_size": 32,
+  "learning_rate": 0.001,
+  "weight_decay": 0.01,
+  "epochs": 5,
+  "fp16_enabled": true,
+  "device_used": "cuda",
+  "pos_weights": {
+    "Repetition": 4.4149,
+    "Prolongation": 9.3143,
+    "Block": 7.8483
+  },
+  "class_names": [
+    "Repetition",
+    "Prolongation",
+    "Block"
+  ],
+  "checkpoint_in": null,
+  "test_set_touched": false
+}

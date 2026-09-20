@@ -1,0 +1,94 @@
+{
+  "model_architecture": "Model 1: Multi-Label LinearSVC Baseline (Calibrated)",
+  "locked_thresholds": {
+    "Repetition": 0.16,
+    "Prolongation": 0.16,
+    "Block": 0.12
+  },
+  "full_test_evaluation": {
+    "subset_name": "Full TEST Set (6,812 clips)",
+    "total_clips": 6812,
+    "class_metrics": {
+      "Repetition": {
+        "positive_support": 1190,
+        "positive_pct": 17.47,
+        "threshold_used": 0.16,
+        "roc_auc": 0.6438,
+        "pr_auc": 0.285,
+        "f1_score": 0.3427,
+        "precision": 0.2255,
+        "recall": 0.7143
+      },
+      "Prolongation": {
+        "positive_support": 694,
+        "positive_pct": 10.19,
+        "threshold_used": 0.16,
+        "roc_auc": 0.7595,
+        "pr_auc": 0.3014,
+        "f1_score": 0.355,
+        "precision": 0.2951,
+        "recall": 0.4452
+      },
+      "Block": {
+        "positive_support": 854,
+        "positive_pct": 12.54,
+        "threshold_used": 0.12,
+        "roc_auc": 0.5867,
+        "pr_auc": 0.1772,
+        "f1_score": 0.2385,
+        "precision": 0.1637,
+        "recall": 0.4391
+      }
+    },
+    "summary": {
+      "macro_f1": 0.3121,
+      "mean_pr_auc": 0.2545,
+      "mean_roc_auc": 0.6633,
+      "subset_accuracy": 0.3011,
+      "hamming_loss": 0.3317
+    }
+  },
+  "assigned_speaker_test_evaluation": {
+    "subset_name": "Strictly Assigned-Speaker TEST Subset (6,656 clips)",
+    "total_clips": 6656,
+    "class_metrics": {
+      "Repetition": {
+        "positive_support": 1171,
+        "positive_pct": 17.59,
+        "threshold_used": 0.16,
+        "roc_auc": 0.6428,
+        "pr_auc": 0.2865,
+        "f1_score": 0.343,
+        "precision": 0.2258,
+        "recall": 0.7139
+      },
+      "Prolongation": {
+        "positive_support": 684,
+        "positive_pct": 10.28,
+        "threshold_used": 0.16,
+        "roc_auc": 0.7587,
+        "pr_auc": 0.3012,
+        "f1_score": 0.356,
+        "precision": 0.2969,
+        "recall": 0.4444
+      },
+      "Block": {
+        "positive_support": 842,
+        "positive_pct": 12.65,
+        "threshold_used": 0.12,
+        "roc_auc": 0.5855,
+        "pr_auc": 0.1772,
+        "f1_score": 0.2393,
+        "precision": 0.1642,
+        "recall": 0.4406
+      }
+    },
+    "summary": {
+      "macro_f1": 0.3128,
+      "mean_pr_auc": 0.255,
+      "mean_roc_auc": 0.6623,
+      "subset_accuracy": 0.2976,
+      "hamming_loss": 0.3336
+    }
+  }
+}

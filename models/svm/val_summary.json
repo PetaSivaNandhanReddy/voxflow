@@ -1,0 +1,47 @@
+{
+  "model_architecture": "Multi-Label LinearSVC (One-vs-Rest) with Calibrated Probabilities",
+  "features": "162 Acoustic Features (13 MFCC + Delta + Delta-Delta + RMS + ZCR across frames)",
+  "train_samples": 17555,
+  "val_samples": 6632,
+  "test_samples": 6812,
+  "test_status": "UNTOUCHED",
+  "metrics_validation": {
+    "Repetition": {
+      "auc_roc": 0.6382,
+      "pr_auc": 0.306,
+      "optimal_threshold": 0.16,
+      "val_f1_optimal": 0.3648,
+      "val_precision": 0.2516,
+      "val_recall": 0.663,
+      "val_f1_default_0.5": 0.0
+    },
+    "Prolongation": {
+      "auc_roc": 0.7616,
+      "pr_auc": 0.289,
+      "optimal_threshold": 0.16,
+      "val_f1_optimal": 0.3604,
+      "val_precision": 0.2885,
+      "val_recall": 0.4801,
+      "val_f1_default_0.5": 0.0441
+    },
+    "Block": {
+      "auc_roc": 0.5933,
+      "pr_auc": 0.1871,
+      "optimal_threshold": 0.12,
+      "val_f1_optimal": 0.2533,
+      "val_precision": 0.1783,
+      "val_recall": 0.4367,
+      "val_f1_default_0.5": 0.0
+    }
+  },
+  "mean_metrics": {
+    "macro_f1": 0.3262,
+    "mean_pr_auc": 0.2607,
+    "mean_roc_auc": 0.6644
+  },
+  "optimal_thresholds": {
+    "Repetition": 0.16,
+    "Prolongation": 0.16,
+    "Block": 0.12
+  }
+}

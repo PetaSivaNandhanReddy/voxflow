@@ -1,0 +1,25 @@
+{
+  "pretrained_model": "facebook/hubert-base-ls960",
+  "stage": "A",
+  "encoder_frozen": true,
+  "random_seed": 42,
+  "batch_size": 16,
+  "grad_accum_steps": 2,
+  "effective_batch_size": 32,
+  "learning_rate": 0.001,
+  "weight_decay": 0.01,
+  "epochs": 5,
+  "fp16_enabled": false,
+  "device_used": "cuda",
+  "pos_weights": {
+    "Repetition": 4.414867401123047,
+    "Prolongation": 9.314335823059082,
+    "Block": 7.848286151885986
+  },
+  "class_names": [
+    "Repetition",
+    "Prolongation",
+    "Block"
+  ],
+  "test_set_touched": false
+}

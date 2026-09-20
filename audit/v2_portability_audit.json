@@ -1,0 +1,162 @@
+{
+  "audit_metadata": {
+    "project": "VoxFlow V2",
+    "timestamp": "2026-09-19T13:56:00+05:30",
+    "scope": "V2_ONLY",
+    "audit_type": "PORTABILITY_AND_REPRODUCIBILITY",
+    "status": "COMPLETED_SAFE_FIXES_APPLIED"
+  },
+  "executive_summary": {
+    "overall_health": "EXCELLENT",
+    "zero_leakage_intact": true,
+    "locked_manifests_intact": true,
+    "model1_results_preserved": true,
+    "machine_specific_paths_eliminated": true,
+    "clean_package_prepared": true
+  },
+  "path_audit": {
+    "hardcoded_paths_found": 7,
+    "hardcoded_paths_resolved": 7,
+    "remaining_unresolved": 0,
+    "findings": [
+      {
+        "file": "v2/audit/run_final_audit.py",
+        "line": 230,
+        "original": "stat = shutil.disk_usage('/Users/gururaghavraj/Desktop/voxflow')",
+        "issue": "Hardcoded local macOS home directory",
+        "resolution": "Replaced with pathlib.Path(__file__).resolve().parent.parent.parent",
+        "status": "RESOLVED"
+      },
+      {
+        "file": "v2/training/train_svm_baseline.py",
+        "line": 180,
+        "original": "Relative paths assuming CWD is repository root",
+        "issue": "Failed if executed from v2/training/ directly",
+        "resolution": "Derived paths from PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent.parent",
+        "status": "RESOLVED"
+      },
+      {
+        "file": "v2/evaluation/evaluate_model1_svm.py",
+        "line": 31,
+        "original": "sys.path.insert(0, os.path.abspath('v2/training'))",
+        "issue": "Failed if executed from v2/evaluation/ directly",
+        "resolution": "Derived paths from PROJECT_ROOT using pathlib.Path",
+        "status": "RESOLVED"
+      },
+      {
+        "file": "v2/evaluation/evaluate_hubert.py",
+        "line": 44,
+        "original": "sys.path.insert(0, os.path.abspath('v2/training'))",
+        "issue": "Failed if executed from v2/evaluation/ directly",
+        "resolution": "Derived paths from PROJECT_ROOT using pathlib.Path",
+        "status": "RESOLVED"
+      },
+      {
+        "file": "v2/training/KAGGLE_HUBERT_README.md",
+        "line": 117,
+        "original": "file:///Users/gururaghavraj/Desktop/voxflow/...",
+        "issue": "IDE absolute link artifact",
+        "resolution": "Replaced with portable relative markdown link",
+        "status": "RESOLVED"
+      },
+      {
+        "file": "v2/kaggle/hubert_stageA/README.md",
+        "line": 117,
+        "original": "file:///Users/gururaghavraj/Desktop/voxflow/...",
+        "issue": "IDE absolute link artifact",
+        "resolution": "Replaced with portable relative markdown link",
+        "status": "RESOLVED"
+      },
+      {
+        "file": "v2/audit/*.md, v2/evaluation/*.md",
+        "line": "multiple",
+        "original": "file:///Users/gururaghavraj/Desktop/voxflow/...",
+        "issue": "IDE absolute file links in report headers",
+        "resolution": "Replaced with clean relative repository paths",
+        "status": "RESOLVED"
+      }
+    ]
+  },
+  "dataset_reproducibility": {
+    "manifests_portable": true,
+    "manifest_columns_audit": "Clean (archive_path relative to audio root)",
+    "clean_dataset_size": 30999,
+    "split_sizes": {
+      "train": 17555,
+      "val": 6632,
+      "test": 6812
+    },
+    "raw_archive": {
+      "filename": "v2/dataset/raw/sep28k_preextracted.zip",
+      "size_bytes": 2330237947,
+      "source_url": "https://huggingface.co/datasets/confit/sep28k",
+      "git_status": "EXCLUDED_IN_GITIGNORE"
+    },
+    "setup_requirement": "Fresh clone downloads sep28k_preextracted.zip from Hugging Face into v2/dataset/raw/"
+  },
+  "dependency_inventory": [
+    {
+      "package": "numpy",
+      "minimum_version": "1.24.0",
+      "purpose": "Acoustic feature arrays, matrix math, signal processing",
+      "used_in": ["train_svm_baseline.py", "evaluate_model1_svm.py", "train_hubert.py", "evaluate_hubert.py"]
+    },
+    {
+      "package": "scipy",
+      "minimum_version": "1.10.0",
+      "purpose": "Discrete Cosine Transform (DCT) for MFCC computation",
+      "used_in": ["train_svm_baseline.py", "acquire_audio.py"]
+    },
+    {
+      "package": "pandas",
+      "minimum_version": "2.0.0",
+      "purpose": "Dataset manifests parsing, participant grouping, metrics collation",
+      "used_in": ["build_manifests.py", "train_svm_baseline.py", "train_hubert.py", "evaluate_hubert.py"]
+    },
+    {
+      "package": "scikit-learn",
+      "minimum_version": "1.2.0",
+      "purpose": "LinearSVC, CalibratedClassifierCV, StandardScaler, ROC-AUC, PR-AUC, F1 metrics",
+      "used_in": ["train_svm_baseline.py", "evaluate_model1_svm.py", "train_hubert.py", "evaluate_hubert.py"]
+    },
+    {
+      "package": "torch",
+      "minimum_version": "2.0.0",
+      "purpose": "Deep learning tensors, HubertMultiLabelClassifier, DataLoader, AMP autocast",
+      "used_in": ["train_hubert.py", "evaluate_hubert.py"]
+    },
+    {
+      "package": "transformers",
+      "minimum_version": "4.30.0",
+      "purpose": "Pretrained HuBERT backbone (facebook/hubert-base-ls960)",
+      "used_in": ["train_hubert.py", "evaluate_hubert.py"]
+    }
+  ],
+  "script_reproducibility_status": {
+    "v2/training/train_svm_baseline.py": "YES, after downloading audio ZIP",
+    "v2/evaluation/evaluate_model1_svm.py": "YES, immediately (uses precomputed cache or audio ZIP)",
+    "v2/training/train_hubert.py": "YES, after environment setup and audio ZIP",
+    "v2/evaluation/evaluate_hubert.py": "YES, after obtaining trained checkpoint",
+    "v2/dataset/build_manifests.py": "YES, using included metadata CSVs"
+  },
+  "issue_classification": {
+    "A_MUST_FIX_BEFORE_GITHUB": [
+      "Add automated data acquisition helper script (download_audio_archive.py) so fresh clones can pull sep28k_preextracted.zip with a single command",
+      "Remove nested .git folders from v2/dataset/raw/sep28k-repo and sep28k-extended-repo before initializing root git repository",
+      "Add pytest test suite in v2/tests/ to verify manifest hashes and sample feature extraction"
+    ],
+    "B_SHOULD_FIX_BEFORE_GITHUB": [
+      "Add top-level repository README.md with clear quickstart badges and architecture diagram",
+      "Host Model 1 and Model 2 trained checkpoints on Hugging Face Model Hub / GitHub Releases with automated download script"
+    ],
+    "C_OPTIONAL_CLEANUP": [
+      "Prune exploratory scratch audio files in v2/dataset/audio/ and v2/dataset/raw/scratch_episodes/ (~674 MB) before publishing repository"
+    ],
+    "D_DO_NOT_TOUCH_YET": [
+      "Do not train HuBERT locally (runs on Kaggle GPU)",
+      "Do not implement Model 3 Wav2Vec2 yet (scheduled next)",
+      "Do not build V2 inference application until ML evaluations are complete",
+      "Do not modify V1/TARP"
+    ]
+  }
+}

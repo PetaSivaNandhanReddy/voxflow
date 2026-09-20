@@ -1,0 +1,93 @@
+{
+  "experiment_name": "voxflow_v2_model2_hubert",
+  "model_type": "hubert_multi_label",
+  "pretrained_checkpoint": "facebook/hubert-base-ls960",
+  "task": "multi_label_classification",
+  "targets": [
+    "Repetition",
+    "Prolongation",
+    "Block"
+  ],
+  "num_labels": 3,
+  "audio_specifications": {
+    "sample_rate": 16000,
+    "duration_seconds": 3.0,
+    "target_num_samples": 48000,
+    "channels": 1,
+    "format": "PCM_16"
+  },
+  "dataset_manifests": {
+    "train": "v2/dataset/manifests/v2_train_manifest.csv",
+    "val": "v2/dataset/manifests/v2_val_manifest.csv",
+    "test": "v2/dataset/manifests/v2_test_manifest.csv",
+    "raw_audio_zip": "v2/dataset/raw/sep28k_preextracted.zip"
+  },
+  "class_imbalance": {
+    "strategy": "per_label_pos_weight_bce",
+    "formula": "pos_weight[c] = (num_train_samples - num_train_positives[c]) / num_train_positives[c]",
+    "source_split": "TRAIN_ONLY",
+    "train_sample_count": 17555,
+    "class_counts_train": {
+      "Repetition": {
+        "positive": 3242,
+        "negative": 14313,
+        "prevalence": 0.1847,
+        "pos_weight": 4.4149
+      },
+      "Prolongation": {
+        "positive": 1702,
+        "negative": 15853,
+        "prevalence": 0.0970,
+        "pos_weight": 9.3143
+      },
+      "Block": {
+        "positive": 1984,
+        "negative": 15571,
+        "prevalence": 0.1130,
+        "pos_weight": 7.8483
+      }
+    }
+  },
+  "stage_a_frozen_encoder": {
+    "description": "HuBERT encoder backbone frozen; only the classification head is trained on TRAIN and evaluated on VAL",
+    "freeze_encoder": true,
+    "batch_size": 16,
+    "gradient_accumulation_steps": 2,
+    "learning_rate": 0.001,
+    "weight_decay": 0.01,
+    "epochs": 5,
+    "lr_scheduler": "cosine_with_warmup",
+    "warmup_ratio": 0.1,
+    "mixed_precision": "fp16",
+    "early_stopping_patience": 2,
+    "selection_metric": "val_macro_f1"
+  },
+  "stage_b_limited_finetuning": {
+    "description": "Controlled validation fine-tuning with only the last 2 HuBERT transformer layers unfrozen",
+    "starting_checkpoint": "/kaggle/working/hubert_stageA/hubert_stage_A_best.pt",
+    "stage_a_val_macro_f1": 0.4508,
+    "unfreeze_strategy": "last_2_transformer_layers",
+    "unfreeze_last_n_layers": 2,
+    "earlier_layers_frozen": true,
+    "cnn_feature_extractor_frozen": true,
+    "batch_size": 8,
+    "gradient_accumulation_steps": 4,
+    "effective_batch_size": 32,
+    "learning_rate_encoder": 0.00001,
+    "learning_rate_head": 0.0001,
+    "optimizer": "AdamW",
+    "weight_decay": 0.01,
+    "epochs": 3,
+    "random_seed": 42,
+    "mixed_precision": "fp16",
+    "selection_metric": "val_macro_f1",
+    "test_set_touched": false
+  },
+  "threshold_tuning": {
+    "strategy": "per_class_f1_grid_search",
+    "split_used": "VALIDATION_ONLY",
+    "search_range": [0.05, 0.95],
+    "search_step": 0.01,
+    "test_set_touched": false
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "model_architecture": "Wav2Vec2 Multi-Label Classifier (facebook/wav2vec2-base)",
+  "stage": "C",
+  "encoder_frozen": false,
+  "unfrozen_encoder_layers": 4,
+  "best_epoch": 5,
+  "train_loss": 0.6802,
+  "val_loss": 1.1642,
+  "train_samples": 17555,
+  "val_samples": 6632,
+  "test_samples": 6812,
+  "test_status": "UNTOUCHED",
+  "metrics_validation": {
+    "Repetition": {
+      "auc_roc": 0.8261,
+      "pr_auc": 0.5844,
+      "optimal_threshold": 0.65,
+      "val_f1_optimal": 0.5627,
+      "val_precision": 0.5195,
+      "val_recall": 0.6138,
+      "val_f1_default_0.5": 0.5408
+    },
+    "Prolongation": {
+      "auc_roc": 0.8346,
+      "pr_auc": 0.4653,
+      "optimal_threshold": 0.7,
+      "val_f1_optimal": 0.4787,
+      "val_precision": 0.4659,
+      "val_recall": 0.4923,
+      "val_f1_default_0.5": 0.4594
+    },
+    "Block": {
+      "auc_roc": 0.7194,
+      "pr_auc": 0.2738,
+      "optimal_threshold": 0.5,
+      "val_f1_optimal": 0.3337,
+      "val_precision": 0.2294,
+      "val_recall": 0.6118,
+      "val_f1_default_0.5": 0.3337
+    }
+  },
+  "mean_metrics": {
+    "macro_f1": 0.4584,
+    "mean_pr_auc": 0.4412,
+    "mean_roc_auc": 0.7934
+  },
+  "optimal_thresholds": {
+    "Repetition": 0.65,
+    "Prolongation": 0.7,
+    "Block": 0.5
+  },
+  "checkpoint_path": "/kaggle/working/wav2vec2_stageC/wav2vec2_stage_C_best.pt",
+  "progression_comparison": {
+    "stage_B_extended_macro_f1": 0.4479,
+    "stage_C_macro_f1": 0.4584,
+    "absolute_delta_macro_f1": 0.0105
+  }
+}

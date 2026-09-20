@@ -1,0 +1,57 @@
+{
+  "model": "Wav2Vec2 Mean+Max Stage C",
+  "pretrained_model": "facebook/wav2vec2-base",
+  "test_samples": 6812,
+  "test_status": "LOCKED_TEST",
+  "thresholds": {
+    "Repetition": 0.48,
+    "Prolongation": 0.84,
+    "Block": 0.7
+  },
+  "macro_f1": 0.44975705730985327,
+  "mean_pr_auc": 0.4287696668671283,
+  "mean_roc_auc": 0.8019593132836964,
+  "subset_accuracy": 0.5509395184967704,
+  "hamming_loss": 0.1853591700919945,
+  "per_class": [
+    {
+      "Class": "Repetition",
+      "Precision": 0.4675572519083969,
+      "Recall": 0.6176470588235294,
+      "F1": 0.5322230267921796,
+      "ROC-AUC": 0.8332408844007186,
+      "PR-AUC": 0.5461243680921225,
+      "Threshold": 0.48,
+      "TN": 4785,
+      "FP": 837,
+      "FN": 455,
+      "TP": 735
+    },
+    {
+      "Class": "Prolongation",
+      "Precision": 0.5070866141732283,
+      "Recall": 0.46397694524495675,
+      "F1": 0.48457486832204666,
+      "ROC-AUC": 0.8575138039309524,
+      "PR-AUC": 0.48714850379147007,
+      "Threshold": 0.84,
+      "TN": 5805,
+      "FP": 313,
+      "FN": 372,
+      "TP": 322
+    },
+    {
+      "Class": "Block",
+      "Precision": 0.24260355029585798,
+      "Recall": 0.5281030444964872,
+      "F1": 0.33247327681533356,
+      "ROC-AUC": 0.7151232515194182,
+      "PR-AUC": 0.2530361287177922,
+      "Threshold": 0.7,
+      "TN": 4550,
+      "FP": 1408,
+      "FN": 403,
+      "TP": 451
+    }
+  ]
+}

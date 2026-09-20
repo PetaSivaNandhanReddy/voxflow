@@ -1,0 +1,51 @@
+{
+  "model_architecture": "HuBERT Multi-Label Classifier (facebook/hubert-base-ls960)",
+  "stage": "B",
+  "encoder_frozen": false,
+  "unfrozen_encoder_layers": 2,
+  "train_samples": 17555,
+  "val_samples": 6632,
+  "test_samples": 6812,
+  "test_status": "UNTOUCHED",
+  "metrics_validation": {
+    "Repetition": {
+      "auc_roc": 0.8438,
+      "pr_auc": 0.6322,
+      "optimal_threshold": 0.77,
+      "val_f1_optimal": 0.5805,
+      "val_precision": 0.5445,
+      "val_recall": 0.6216,
+      "val_f1_default_0.5": 0.5187
+    },
+    "Prolongation": {
+      "auc_roc": 0.8496,
+      "pr_auc": 0.4861,
+      "optimal_threshold": 0.79,
+      "val_f1_optimal": 0.5034,
+      "val_precision": 0.4905,
+      "val_recall": 0.5169,
+      "val_f1_default_0.5": 0.4376
+    },
+    "Block": {
+      "auc_roc": 0.7438,
+      "pr_auc": 0.3015,
+      "optimal_threshold": 0.57,
+      "val_f1_optimal": 0.3644,
+      "val_precision": 0.2803,
+      "val_recall": 0.5207,
+      "val_f1_default_0.5": 0.3572
+    }
+  },
+  "mean_metrics": {
+    "macro_f1": 0.4828,
+    "mean_pr_auc": 0.4733,
+    "mean_roc_auc": 0.8124
+  },
+  "optimal_thresholds": {
+    "Repetition": 0.77,
+    "Prolongation": 0.79,
+    "Block": 0.57
+  },
+  "checkpoint_path": "/kaggle/working/hubert_stageB_extended_v2/hubert_stage_B_best.pt",
+  "stage_a_val_macro_f1": 0.4508
+}

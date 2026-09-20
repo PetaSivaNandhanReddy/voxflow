@@ -1,0 +1,30 @@
+{
+  "pretrained_model": "facebook/wav2vec2-base",
+  "stage": "B",
+  "encoder_frozen": false,
+  "unfrozen_encoder_layers": 2,
+  "random_seed": 42,
+  "batch_size": 8,
+  "grad_accum_steps": 4,
+  "effective_batch_size": 32,
+  "learning_rate": {
+    "encoder": 1e-05,
+    "head": 0.0001
+  },
+  "weight_decay": 0.01,
+  "epochs": 5,
+  "fp16_enabled": true,
+  "device_used": "cuda",
+  "pos_weights": {
+    "Repetition": 4.4149,
+    "Prolongation": 9.3143,
+    "Block": 7.8483
+  },
+  "class_names": [
+    "Repetition",
+    "Prolongation",
+    "Block"
+  ],
+  "checkpoint_in": "/kaggle/working/wav2vec2_stageB/wav2vec2_stage_B_best.pt",
+  "test_set_touched": false
+}

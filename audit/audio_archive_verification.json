@@ -1,0 +1,215 @@
+{
+  "archive_inspection": {
+    "archive_file": "v2/dataset/raw/sep28k_preextracted.zip",
+    "total_compressed_bytes": 2330237947,
+    "total_compressed_gb": 2.17,
+    "total_uncompressed_wav_bytes": 3063274770,
+    "total_uncompressed_wav_gb": 2.85,
+    "total_entries": 32325,
+    "total_wav_files": 32321,
+    "metadata_csv_files": [
+      "SEP-28k_episodes.csv",
+      "SEP-28k_labels.csv",
+      "fluencybank_episodes.csv",
+      "fluencybank_labels.csv"
+    ],
+    "other_files": [],
+    "directory_structure": "clips/stuttering-clips/clips/{Show}_{EpId}_{ClipId}.wav"
+  },
+  "metadata_comparison": {
+    "metadata_clips_total": 32321,
+    "metadata_sep28k": 28177,
+    "metadata_fluencybank": 4144,
+    "zip_wav_files_total": 32321,
+    "zip_wav_sep28k": 28177,
+    "zip_wav_fluencybank": 4144,
+    "matching_wavs": 32321,
+    "missing_wavs": 0,
+    "extra_wavs": 0,
+    "duplicate_identities": 0
+  },
+  "audio_validity": {
+    "valid_audio_clips": 31853,
+    "pct_valid": 98.55,
+    "empty_audio_clips": 413,
+    "pct_empty": 1.28,
+    "partial_audio_clips": 55,
+    "pct_partial": 0.17,
+    "corrupt_audio_clips": 0,
+    "pct_corrupt": 0.0
+  },
+  "discrepancy_resolution": {
+    "description": "Resolution of 31,853 (96,044B) + 413 (44B) + 7 (top partial) = 32,273 vs 32,321 reported WAVs",
+    "explanation": "The 48-file difference represents 48 individual partial WAV files, each having a unique file size (1 occurrence each). They were ranked 6th through 53rd in frequency and truncated by the preliminary top-5 query.",
+    "count_discrepancy_files": 48,
+    "sample_discrepancy_files": [
+      {
+        "filename": "FluencyBank_016_109.wav",
+        "show": "FluencyBank",
+        "ep_id": "016",
+        "clip_id": "109",
+        "file_size": 67756,
+        "duration_seconds": 2.116,
+        "frames": 33856,
+        "category": "PARTIAL_TRUNCATED"
+      },
+      {
+        "filename": "FluencyBank_016_110.wav",
+        "show": "FluencyBank",
+        "ep_id": "016",
+        "clip_id": "110",
+        "file_size": 41516,
+        "duration_seconds": 1.296,
+        "frames": 20736,
+        "category": "PARTIAL_TRUNCATED"
+      },
+      {
+        "filename": "FluencyBank_017_0.wav",
+        "show": "FluencyBank",
+        "ep_id": "017",
+        "clip_id": "0",
+        "file_size": 74284,
+        "duration_seconds": 2.32,
+        "frames": 37120,
+        "category": "PARTIAL_TRUNCATED"
+      },
+      {
+        "filename": "FluencyBank_019_0.wav",
+        "show": "FluencyBank",
+        "ep_id": "019",
+        "clip_id": "0",
+        "file_size": 93804,
+        "duration_seconds": 2.93,
+        "frames": 46880,
+        "category": "PARTIAL_TRUNCATED"
+      },
+      {
+        "filename": "FluencyBank_024_0.wav",
+        "show": "FluencyBank",
+        "ep_id": "024",
+        "clip_id": "0",
+        "file_size": 90924,
+        "duration_seconds": 2.84,
+        "frames": 45440,
+        "category": "PARTIAL_TRUNCATED"
+      },
+      {
+        "filename": "FluencyBank_046_0.wav",
+        "show": "FluencyBank",
+        "ep_id": "046",
+        "clip_id": "0",
+        "file_size": 90284,
+        "duration_seconds": 2.82,
+        "frames": 45120,
+        "category": "PARTIAL_TRUNCATED"
+      },
+      {
+        "filename": "FluencyBank_063_5.wav",
+        "show": "FluencyBank",
+        "ep_id": "063",
+        "clip_id": "5",
+        "file_size": 31928,
+        "duration_seconds": 0.996,
+        "frames": 15942,
+        "category": "PARTIAL_TRUNCATED"
+      },
+      {
+        "filename": "FluencyBank_071_117.wav",
+        "show": "FluencyBank",
+        "ep_id": "071",
+        "clip_id": "117",
+        "file_size": 35242,
+        "duration_seconds": 1.1,
+        "frames": 17599,
+        "category": "PARTIAL_TRUNCATED"
+      },
+      {
+        "filename": "FluencyBank_076_86.wav",
+        "show": "FluencyBank",
+        "ep_id": "076",
+        "clip_id": "86",
+        "file_size": 80130,
+        "duration_seconds": 2.503,
+        "frames": 40043,
+        "category": "PARTIAL_TRUNCATED"
+      },
+      {
+        "filename": "FluencyBank_076_87.wav",
+        "show": "FluencyBank",
+        "ep_id": "076",
+        "clip_id": "87",
+        "file_size": 31810,
+        "duration_seconds": 0.993,
+        "frames": 15883,
+        "category": "PARTIAL_TRUNCATED"
+      }
+    ],
+    "total_partial_files_sum": 55,
+    "exact_sum_check": "31853 (valid 3.0s) + 413 (empty 44B) + 55 (partial) = 32321 (exact 32321)"
+  },
+  "show_breakdown": {
+    "FluencyBank": {
+      "total_clips": 4144,
+      "valid_audio": 3953,
+      "empty_audio": 158,
+      "partial_audio": 33,
+      "corrupt_audio": 0
+    },
+    "HVSA": {
+      "total_clips": 736,
+      "valid_audio": 734,
+      "empty_audio": 0,
+      "partial_audio": 2,
+      "corrupt_audio": 0
+    },
+    "HeStutters": {
+      "total_clips": 3684,
+      "valid_audio": 3566,
+      "empty_audio": 116,
+      "partial_audio": 2,
+      "corrupt_audio": 0
+    },
+    "IStutterSoWhat": {
+      "total_clips": 870,
+      "valid_audio": 869,
+      "empty_audio": 0,
+      "partial_audio": 1,
+      "corrupt_audio": 0
+    },
+    "MyStutteringLife": {
+      "total_clips": 2339,
+      "valid_audio": 2335,
+      "empty_audio": 0,
+      "partial_audio": 4,
+      "corrupt_audio": 0
+    },
+    "StrongVoices": {
+      "total_clips": 2308,
+      "valid_audio": 2272,
+      "empty_audio": 36,
+      "partial_audio": 0,
+      "corrupt_audio": 0
+    },
+    "StutterTalk": {
+      "total_clips": 5064,
+      "valid_audio": 5056,
+      "empty_audio": 7,
+      "partial_audio": 1,
+      "corrupt_audio": 0
+    },
+    "StutteringIsCool": {
+      "total_clips": 4013,
+      "valid_audio": 4011,
+      "empty_audio": 0,
+      "partial_audio": 2,
+      "corrupt_audio": 0
+    },
+    "WomenWhoStutter": {
+      "total_clips": 9163,
+      "valid_audio": 9057,
+      "empty_audio": 96,
+      "partial_audio": 10,
+      "corrupt_audio": 0
+    }
+  }
+}

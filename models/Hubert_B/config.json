@@ -1,0 +1,30 @@
+{
+  "pretrained_model": "facebook/hubert-base-ls960",
+  "stage": "B",
+  "encoder_frozen": false,
+  "unfrozen_encoder_layers": 2,
+  "random_seed": 42,
+  "batch_size": 8,
+  "grad_accum_steps": 4,
+  "effective_batch_size": 32,
+  "learning_rate": {
+    "encoder": 1e-05,
+    "head": 0.0001
+  },
+  "weight_decay": 0.01,
+  "epochs": 3,
+  "fp16_enabled": true,
+  "device_used": "cuda",
+  "pos_weights": {
+    "Repetition": 4.414867401123047,
+    "Prolongation": 9.314335823059082,
+    "Block": 7.848286151885986
+  },
+  "class_names": [
+    "Repetition",
+    "Prolongation",
+    "Block"
+  ],
+  "checkpoint_in": "/kaggle/working/hubert_stageA/hubert_stage_A_best.pt",
+  "test_set_touched": false
+}
