@@ -49,7 +49,7 @@ def run_api_server(host, port):
 
 def run_dashboard():
     """Runs the Streamlit dashboard."""
-    dashboard_file = PROJECT_ROOT / "app" / "dashboard" / "app.py"
+    dashboard_file = PROJECT_ROOT / "app" / "dashboard" / "dashboard_app.py"
     cmd = [
         sys.executable,
         "-m",

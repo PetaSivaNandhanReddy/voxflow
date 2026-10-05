@@ -10,7 +10,7 @@ import runpy
 import pathlib
 
 ROOT_DIR = pathlib.Path(__file__).resolve().parent
-target_dashboard = ROOT_DIR / "app" / "dashboard" / "app.py"
+target_dashboard = ROOT_DIR / "app" / "dashboard" / "dashboard_app.py"
 
 if __name__ == "__main__":
     runpy.run_path(str(target_dashboard), run_name="__main__")

@@ -14,20 +14,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-# Setup Python path to include project root and prevent app.py shadowing
+# Setup Python path to include project root
 PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
-dashboard_dir = str(pathlib.Path(__file__).resolve().parent)
-while dashboard_dir in sys.path:
-    sys.path.remove(dashboard_dir)
-
-root_str = str(PROJECT_ROOT)
-if root_str in sys.path:
-    sys.path.remove(root_str)
-sys.path.insert(0, root_str)
-
-# Clear any shadowed 'app' module without __path__
-if 'app' in sys.modules and not hasattr(sys.modules['app'], '__path__'):
-    del sys.modules['app']
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from configs.config import MODEL_CONFIG, SESSION_CONFIG
 from app.db.database import (

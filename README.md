@@ -299,7 +299,7 @@ voxflow/
 │   │   ├── event_aggregator.py # Temporal disfluency event clustering
 │   │   └── session_summary.py  # Session fluency metrics calculation
 │   └── dashboard/
-│       └── app.py            # Streamlit multi-page clinical interface
+│       └── dashboard_app.py  # Streamlit multi-page clinical interface
 │
 ├── models/
 │   ├── Hubert_D/             # Production HuBERT model (config, history, weights)
