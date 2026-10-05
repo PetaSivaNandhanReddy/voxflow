@@ -371,7 +371,7 @@ Streamlit Dashboard
         st.markdown("""
         - **Fixed Capture Duration:** Phase-1 recording duration is fixed at **10.0 seconds** (320,000 bytes at 16 kHz 16-bit mono PCM).
         - **Default Serial Port:** The standard hardware port is `COM8` (configurable via `--port`).
-        - **Automatic Analysis & Ingestion:** The Python serial bridge sends the captured WAV to `POST /api/sessions/upload`, where it is analyzed by HuBERT-D and saved to SQLite.
+        - **Automatic Analysis & Ingestion:** The Python serial bridge sends the captured WAV to the existing VoxFlow session API (`POST /api/v1/session/<session_id>/audio`), then stops and analyzes the session; the results are saved to SQLite.
         - **Result Inspection:** Once the bridge completes, view the analysis under **Current Session** or **Session History**.
         - **Decoupled Architecture:** The Streamlit dashboard does not directly communicate with serial hardware ports.
         """)
