@@ -261,7 +261,7 @@ python -m unittest discover -s tests -p "test_*.py"
 ## 8. Limitations & Scope
 
 - **Research Prototype:** VoxFlow is an automated speech fluency research prototype designed for longitudinal tracking and progress monitoring. It is **not** a certified medical diagnostic device and does not make clinical diagnoses.
-- **Physical Hardware Validation:** Physical testing on real ESP32 + INMP441 microcontrollers is pending hardware availability. The software pipeline and communication protocol are fully implemented.
+- **Phase-1 Hardware Validation:** Physical testing on the real ESP32 Dev Module + INMP441 microphone has been successfully completed, including 10-second PCM capture, WAV generation, REST API upload, HuBERT-D inference, SQLite persistence, and Streamlit visualization. Physical START/STOP buttons, LED status indicators, and longer 60-second hardware-controlled sessions remain planned for Phase 2.
 - **Acoustic Environment Sensitivity:** Detection accuracy depends on microphone proximity, ambient background noise, and individual speaker idiosyncratic speech patterns.
 - **Session-Based Scope:** The system analyzes standard continuous recording intervals (30–60 seconds) rather than claiming zero-latency instantaneous diagnosis.
 
