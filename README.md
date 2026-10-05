@@ -124,8 +124,8 @@ VoxFlow is configured for an **ESP32 Dev Module** paired with an **INMP441 I2S d
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/nayanojwal0810/VoxFlow.git
-cd VoxFlow
+git clone https://github.com/PetaSivaNandhanReddy/voxflow.git
+cd voxflow
 ```
 
 ### 2. Create and Activate Virtual Environment
