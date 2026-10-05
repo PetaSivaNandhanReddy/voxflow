@@ -22,3 +22,7 @@ tqdm>=4.65.0
 flask>=3.0.0
 streamlit>=1.30.0
 plotly>=5.18.0
+
+# ESP32 hardware bridge
+pyserial>=3.5
+requests>=2.31.0

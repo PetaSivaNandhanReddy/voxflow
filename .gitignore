@@ -51,6 +51,7 @@ models/cache/*.npz
 *.gz
 dataset/raw/
 dataset/audio/
+recordings/
 
 # Database files & local test DBs
 *.db

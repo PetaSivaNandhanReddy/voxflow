@@ -104,14 +104,52 @@ VoxFlow is configured for an **ESP32 Dev Module** paired with an **INMP441 I2S d
 | **SD / DATA** | **GPIO 32** | I2S Serial Data Out |
 | **L/R** | **GND** | Channel Select (Ground = Left / Mono) |
 
-### Hardware Audio & Communication Specifications
-- **Sampling Rate:** 16,000 Hz
-- **Channels:** 1 (Mono)
-- **Data Format:** 16-bit Linear PCM
-- **Serial Baud Rate:** 460,800 baud
-- **Default Serial Port:** `COM8` (configurable via `VOXFLOW_SERIAL_PORT` environment variable or in `configs/config.py`)
+### Phase-1 Hardware Prototype Workflow
 
-> **Hardware Note:** Physical end-to-end validation on live microcontrollers is pending hardware availability. The complete software ingestion interface, byte streaming parser, and configuration bindings are implemented and verified.
+The Phase-1 hardware pipeline connects the physical ESP32 microcontroller directly to the VoxFlow backend:
+
+```text
+ESP32 Dev Module + INMP441
+       │ (16 kHz, 16-bit Mono PCM over UART @ 460,800 Baud / COM8)
+       ▼
+Python Serial Bridge (`tools/esp32_serial_bridge.py`)
+       │ (Saves local 10-second WAV: 320,000 bytes PCM)
+       ▼
+VoxFlow REST API (`POST /api/v1/session/start`, `/audio`, `/stop`, `/analyze`)
+       │
+       ▼
+HuBERT-D Deep Learning Inference (8 sliding 3.0s windows, 1.0s step)
+       │
+       ▼
+Temporal Event Aggregation (Merges adjacent detections, gap <= 1.5s)
+       │
+       ▼
+SQLite Database Persistence (`app/voxflow.db`)
+       │
+       ▼
+Streamlit Clinical Dashboard (`http://localhost:8501`)
+```
+
+### Running the Hardware Capture
+
+1. **Standalone WAV Capture Test (bypassing API):**
+   ```bash
+   python tools/esp32_serial_bridge.py --port COM8 --skip-api
+   ```
+2. **Full End-to-End Analysis Session:**
+   Make sure the server is running (`python server.py`), then execute:
+   ```bash
+   python tools/esp32_serial_bridge.py --port COM8
+   ```
+
+### Current Phase-1 Scope & Boundaries
+- **Control:** Laptop-controlled triggering via the Python serial bridge (`PING`/`PONG` handshake $\to$ `START` $\to$ exact 320,000 byte binary stream $\to$ `DONE`).
+- **Duration:** Current Phase-1 recording duration is fixed at **10 seconds** (320,000 bytes PCM).
+- **Serial Port:** Defaults to `COM8` (configurable via `--port` argument or `VOXFLOW_SERIAL_PORT` environment variable).
+- **Physical Controls:** Physical hardware START/STOP buttons are **not implemented yet** (scheduled for Phase 2).
+- **Status Indicators:** Physical hardware LED indicators are **not implemented yet** (scheduled for Phase 2).
+- **Session Length:** 60-second continuous streaming is **not implemented yet**.
+- **Firmware Location:** Arduino sketch located at `hardware/esp32_voxflow/voxflow_esp32.ino`.
 
 ---
 
