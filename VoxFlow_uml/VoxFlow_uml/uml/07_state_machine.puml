@@ -1,8 +1,6 @@
 @startuml
 title <size:20><b>VoxFlow - Session State Machine Diagram</b></size>\n<size:12>Session Lifecycle and Processing States</size>
 
-top to bottom direction
-
 skinparam backgroundColor #F8FAFC
 skinparam shadowing false
 skinparam dpi 170
@@ -19,32 +17,41 @@ skinparam state {
 skinparam ArrowColor #64748B
 skinparam ArrowThickness 1.4
 
-state "IDLE" as Idle #DBEAFE : System waiting for new session\nESP32 Status LED is OFF
+state "IDLE" as Idle #DBEAFE : System ready for new session\nESP32 Status LED: OFF
 
-state "SESSION_STARTED" as Started #E0F2FE : API session record initialized in SQLite\nSession status set to STARTED
+state "WAITING_FOR_START" as Waiting #E0F2FE : Session initialized via API/Bridge\nAwaiting capture trigger
 
-state "RECORDING" as Recording #BFDBFE : Microphone actively capturing audio\nESP32 Status LED is ON (GPIO4 HIGH)
+state "RECORDING" as Recording #BFDBFE : INMP441 actively capturing 16kHz PCM\nESP32 Status LED: ON (GPIO4)
 
-state "AUDIO_READY" as AudioReady #DDD6FE : Audio capture terminated & validated\nSession status set to STOPPED\nESP32 Status LED is OFF
+state "AUDIO_READY" as AudioReady #DDD6FE : Audio captured/uploaded and validated\nPCM/WAV available for processing
 
-state "ANALYZING" as Analyzing #C4B5FD : Sliding-window HuBERT-D inference\n& temporal event aggregation in progress
+state "ANALYZING" as Analyzing #C4B5FD : 3-second sliding windows (1s hop)\nHuBERT-D inference & event aggregation
 
-state "ANALYZED" as Analyzed #DCFCE7 : Results persisted to SQLite (voxflow.db)\nReady for interactive dashboard review
+state "ANALYZED" as Analyzed #DCFCE7 : Session summary & metrics stored in SQLite\nAvailable for Streamlit review
 
 [*] --> Idle
 
-Idle --> Started : POST /api/v1/session/start\nor WAV selection in UI
+' Hardware Workflow Path
+Idle --> Waiting : POST /api/v1/session/start\n(Hardware capture workflow)
+Waiting --> Recording : Physical START button (GPIO27)\nor Serial START command
+Recording --> AudioReady : Physical STOP button (GPIO33)\nor 60-second limit reached
 
-Started --> Recording : User presses START button (GPIO27)\nor bridge issues serial START
+' WAV Upload Path (Direct)
+Idle --> AudioReady : WAV session uploaded\n(Fallback / testing path)
 
-Recording --> AudioReady : Physical STOP button (GPIO33),\n60-second limit, or WAV file uploaded
+' Common Analysis & Review Path
+AudioReady --> Analyzing : POST /api/v1/session/<id>/analyze\nor dashboard trigger
+Analyzing --> Analyzed : Inference complete, thresholds applied,\nevents clustered & summary persisted
+Analyzed --> Idle : Review complete / New session
 
-AudioReady --> Analyzing : POST /api/v1/session/<id>/analyze\nor "Run Full Session Analysis" clicked
+Idle --> [*]
 
-Analyzing --> Analyzed : Inference complete, thresholds applied,\nevents aggregated & summary computed
-
-Analyzed --> Idle : Results stored; ready for next session
-
-Idle --> [*] : System shutdown
+note right of Analyzed
+  <b>Database Lifecycle Statuses:</b>
+  SQLite tracks backend status as:
+  • <b>STARTED</b> (Session created)
+  • <b>STOPPED</b> (Audio received)
+  • <b>ANALYZED</b> (Results ready)
+end note
 
 @enduml

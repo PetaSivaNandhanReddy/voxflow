@@ -35,7 +35,7 @@ start
 
 #DCFCE7:Streamlit Dashboard queries latest / selected session;
 
-#DCFCE7:Render Interactive Clinical Visualizations:\n- Key Summary Cards (Duration, Fluency %, Counts)\n- Multi-Label Probability Timeline (Rep, Pro, Blk curves)\n- Window-Level Model Output Audit Table\n- Aggregated Disfluency Event Visualizer\n- Longitudinal Speech Fluency Trends;
+#DCFCE7:Render Interactive Session Visualizations:\n- Key Summary Cards (Duration, Fluency %, Counts)\n- Multi-Label Probability Timeline (Rep, Pro, Blk curves)\n- Window-Level Model Output Audit Table\n- Aggregated Disfluency Event Visualizer\n- Longitudinal Speech Fluency Trends;
 
 stop
 

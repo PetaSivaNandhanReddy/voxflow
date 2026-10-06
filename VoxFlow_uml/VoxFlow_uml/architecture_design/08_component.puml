@@ -46,52 +46,52 @@ skinparam ArrowThickness 1.4
 ' 1. HARDWARE LAYER
 ' =========================================================
 
-package "1. Edge Hardware Layer" #EFF6FF {
+package "1. Hardware Ingestion Layer" #EFF6FF {
     component "INMP441\nI2S Microphone" as Mic #DBEAFE
-    component "Pushbuttons & LED\n(START: 27, STOP: 33, LED: 4)" as Controls #DBEAFE
-    component "ESP32 Dev Module\nFirmware (16 kHz PCM)" as ESP #BFDBFE
+    component "Buttons & Status LED\n(START: 27, STOP: 33, LED: 4)" as Controls #DBEAFE
+    component "ESP32 Dev Module\n(16 kHz Mono PCM Capture)" as ESP #BFDBFE
 
-    Mic --> ESP : I2S Audio (26, 25, 32)
-    Controls --> ESP : GPIO Controls
+    Mic --> ESP : I2S Bus (SCK:26, WS:25, SD:32)
+    Controls --> ESP : Hardware GPIO
 }
 
 ' =========================================================
-' 2. INGESTION LAYER
+' 2. SERIAL INGESTION LAYER
 ' =========================================================
 
-package "2. Serial Ingestion Layer" #F5F3FF {
+package "2. Serial Bridge Layer" #F5F3FF {
     component "Python Serial Bridge\n(tools/esp32_serial_bridge.py)" as Bridge #EDE9FE
 }
 
 ' =========================================================
-' 3. SESSION PROCESSING & AI ENGINE
+' 3. BACKEND & AI ENGINE
 ' =========================================================
 
-package "3. Backend & AI Inference Engine" #FAF5FF {
-    component "Flask REST API\n(server.py)" as API #E0F2FE
-    component "ContinuousSessionEngine\n(Audio Validation & 3s Slicing)" as Engine #DDD6FE
-    component "HuBERT-D Inference Engine\n(Multi-Label Classifier)" as Model #C4B5FD
-    component "Event Aggregator &\nSession Summary" as Aggregator #DDD6FE
+package "3. Session Processing & AI Engine" #FAF5FF {
+    component "Flask REST API\n(app/api/session_routes.py)" as API #E0F2FE
+    component "Session Processing Engine\n(Audio Validation & 3s/1s Slicing)" as Engine #DDD6FE
+    component "HuBERT-D Inference Engine\n(PyTorch Multi-Label Classifier)" as Model #C4B5FD
+    component "Event Aggregator &\nSession Summary" as Summary #DDD6FE
 
-    API --> Engine : Process session
-    Engine --> Model : Sliding windows (3s/1s)
-    Engine --> Aggregator : Multi-label probabilities
+    API --> Engine : Validate & process audio
+    Engine --> Model : 3.0s windows (1.0s hop)
+    Engine --> Summary : Window probabilities
 }
 
 ' =========================================================
-' 4. STORAGE & VISUALIZATION
+' 4. STORAGE & DASHBOARD
 ' =========================================================
 
-package "4. Storage & Clinical Visualization" #F0FDF4 {
-    database "SQLite Storage\n(voxflow.db)" as DB #ECFDF5
+package "4. Storage & Session Dashboard" #F0FDF4 {
+    database "SQLite Database\n(voxflow.db)" as DB #ECFDF5
     component "Streamlit Dashboard\n(app/dashboard/dashboard_app.py)" as UI #DCFCE7
 
-    actor "User / Clinician" as User #DBEAFE
+    actor "User" as User #DBEAFE
 
-    Engine --> DB : Persist windows & events
-    API --> DB : Session lifecycle state
-    DB --> UI : Stored session analytics
-    UI --> User : Timelines, metrics & trends
+    Engine --> DB : Store windows & events
+    API --> DB : Store session metadata
+    DB --> UI : Read session analytics
+    UI --> User : Results, timelines & trends
 }
 
 ' =========================================================
@@ -99,6 +99,6 @@ package "4. Storage & Clinical Visualization" #F0FDF4 {
 ' =========================================================
 
 ESP --> Bridge : USB Serial (460800 baud)
-Bridge --> API : HTTP REST API\n(POST /api/v1/session/*)
+Bridge --> API : HTTP REST API (POST /api/v1/session/*)
 
 @enduml

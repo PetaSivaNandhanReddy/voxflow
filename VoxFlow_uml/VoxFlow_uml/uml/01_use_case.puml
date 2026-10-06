@@ -7,7 +7,7 @@ skinparam backgroundColor #F8FAFC
 skinparam shadowing false
 skinparam dpi 170
 
-skinparam nodesep 30
+skinparam nodesep 28
 skinparam ranksep 35
 
 skinparam actorStyle awesome
@@ -50,21 +50,21 @@ actor "Speech Therapist\n(Optional Reviewer)" as Therapist #FEF3C7
 
 rectangle "VoxFlow Session Analysis System" {
 
-    ' Audio Input & Ingestion
+    ' Audio Capture & Input
     usecase "Record Speech Session\n(ESP32 Hardware)" as UC_Record #DBEAFE
-    usecase "Upload WAV Session\n(Direct Testing)" as UC_Upload #DBEAFE
+    usecase "Upload WAV Session\n(Direct Input)" as UC_Upload #DBEAFE
 
-    ' Core Analysis
+    ' Core AI Processing
     usecase "Analyze Speech Session" as UC_Analyze #EDE9FE
     usecase "Detect Disfluencies\n(Repetition, Prolongation, Block)" as UC_Detect #F5F3FF
     usecase "Aggregate Temporal Events" as UC_Aggregate #F5F3FF
 
-    ' Visualization & Inspection
-    usecase "View Session Result &\nSummary Metrics" as UC_ViewResult #DCFCE7
-    usecase "View Window-Level\nModel Predictions" as UC_ViewWindows #DCFCE7
-    usecase "View Multi-Label\nProbability Timeline" as UC_ViewTimeline #DCFCE7
-    usecase "View Session History\n& Long-Term Trends" as UC_ViewHistory #DCFCE7
-    usecase "View Model Architecture\n& Benchmark Info" as UC_ViewModel #DCFCE7
+    ' Results & Review
+    usecase "View Session Result\n& Fluency Metrics" as UC_ViewResult #DCFCE7
+    usecase "View Window-Level Predictions" as UC_ViewWindows #DCFCE7
+    usecase "View Disfluency Timeline" as UC_ViewTimeline #DCFCE7
+    usecase "View Session History" as UC_ViewHistory #DCFCE7
+    usecase "View Fluency Trends" as UC_ViewTrends #DCFCE7
 }
 
 ' =========================================================
@@ -73,18 +73,16 @@ rectangle "VoxFlow Session Analysis System" {
 
 User --> UC_Record
 User --> UC_Upload
+User --> UC_Analyze
 User --> UC_ViewResult
 User --> UC_ViewWindows
 User --> UC_ViewTimeline
 User --> UC_ViewHistory
-User --> UC_ViewModel
+User --> UC_ViewTrends
 
 ' =========================================================
-' INCLUSION & ANALYSIS FLOW
+' INCLUSIONS
 ' =========================================================
-
-UC_Record ..> UC_Analyze : <<include>>
-UC_Upload ..> UC_Analyze : <<include>>
 
 UC_Analyze ..> UC_Detect : <<include>>
 UC_Analyze ..> UC_Aggregate : <<include>>
@@ -95,5 +93,6 @@ UC_Analyze ..> UC_Aggregate : <<include>>
 
 Therapist --> UC_ViewResult
 Therapist --> UC_ViewHistory
+Therapist --> UC_ViewTrends
 
 @enduml

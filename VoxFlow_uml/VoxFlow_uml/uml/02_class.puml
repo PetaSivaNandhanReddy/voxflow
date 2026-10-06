@@ -1,5 +1,5 @@
 @startuml
-title <size:20><b>VoxFlow - Class Diagram</b></size>\n<size:12>Core Software Architecture & Processing Pipeline</size>
+title <size:20><b>VoxFlow - Class & Architecture Structure Diagram</b></size>\n<size:12>Core Software Structure, Modules, and HuBERT-D Engine</size>
 
 skinparam backgroundColor #F8FAFC
 skinparam shadowing false
@@ -28,21 +28,21 @@ skinparam package {
 }
 
 ' =========================================================
-' API & CONTROLLER LAYER
+' API & PRESENTATION LAYER
 ' =========================================================
 
-package "API & Web Layer" #EFF6FF {
+package "API & Interface Layer" #EFF6FF {
 
-    class "FlaskSessionAPI" as API <<controller>> #DBEAFE {
-        + start_session(user_id) : json
-        + upload_audio(session_id, file) : json
-        + stop_session(session_id) : json
-        + analyze_session(session_id) : json
-        + get_session(session_id) : json
-        + get_latest_session() : json
+    class "session_routes" as API <<controller>> #DBEAFE {
+        + POST /api/v1/session/start
+        + POST /api/v1/session/<id>/audio
+        + POST /api/v1/session/<id>/stop
+        + POST /api/v1/session/<id>/analyze
+        + GET /api/v1/session/<id>
+        + GET /api/v1/session/latest
     }
 
-    class "DashboardApp" as UI <<presentation>> #DCFCE7 {
+    class "dashboard_app" as UI <<presentation>> #DCFCE7 {
         + render_analyze_session()
         + render_current_session()
         + render_session_history()
@@ -52,34 +52,37 @@ package "API & Web Layer" #EFF6FF {
 }
 
 ' =========================================================
-' PROCESSING & INFERENCE LAYER
+' PROCESSING & INFERENCE ENGINE
 ' =========================================================
 
 package "Session Processing & AI Engine" #F5F3FF {
 
-    class "ContinuousSessionEngine" as Engine #EDE9FE {
-        + process_continuous_session(audio_source, filename) : tuple
-        + validate_and_load_session_audio(audio_source) : tuple
-        + slice_and_predict_windows(audio, sr, engine) : list
+    class "session_engine" as Engine <<module>> #EDE9FE {
+        + validate_and_load_session_audio(audio_source)
+        + process_session_windows(audio, sr, engine)
+        + process_continuous_session(audio_source, filename)
     }
 
-    class "HuBERTInferenceEngine" as Model #C4B5FD {
-        - model : HuBERTMultiLabel
-        - thresholds : dict
+    class "VoxFlowInferenceEngine" as InfEngine #C4B5FD {
+        - model : HubertMultiLabelClassifier
         - device : torch.device
+        - thresholds : dict
         + predict_window(waveform, sample_rate) : dict
         + get_model_info() : dict
-        - _apply_thresholds(probabilities) : tuple
     }
 
-    class "EventAggregator" as Aggregator #DDD6FE {
+    class "HubertMultiLabelClassifier" as HubertModel #C4B5FD {
+        - hubert : HubertModel
+        - classifier : Sequential
+        + forward(input_values, attention_mask) : Tensor
+    }
+
+    class "event_aggregator" as Aggregator <<module>> #DDD6FE {
         + aggregate_window_events(windows, thresholds) : list
-        - _cluster_consecutive_active(windows, category) : list
     }
 
-    class "SessionSummary" as Summary #DDD6FE {
+    class "session_summary" as Summary <<module>> #DDD6FE {
         + calculate_session_summary(windows, events, duration) : dict
-        + compute_fluency_ratio(total_windows, fluent_windows) : float
     }
 }
 
@@ -89,8 +92,8 @@ package "Session Processing & AI Engine" #F5F3FF {
 
 package "Data Persistence Layer" #ECFDF5 {
 
-    class "DatabaseManager" as DB <<repository>> #DCFCE7 {
-        - db_path : Path
+    class "database" as DB <<module>> #DCFCE7 {
+        - DB_PATH : Path
         + init_db()
         + save_session_record(session_id, ...)
         + save_session_analysis(session_id, windows, events, summary)
@@ -102,18 +105,19 @@ package "Data Persistence Layer" #ECFDF5 {
 }
 
 ' =========================================================
-' RELATIONSHIPS
+' RELATIONSHIPS & DATA FLOW
 ' =========================================================
 
-API --> Engine : triggers processing
-Engine --> Model : sliding-window inference (3.0s/1.0s)
-Engine --> Aggregator : clusters detected disfluencies
-Engine --> Summary : calculates session metrics
+API --> Engine : triggers session processing
+Engine --> InfEngine : invokes sliding-window inference (3s window, 1s hop)
+InfEngine *-- HubertModel : contains PyTorch neural network
+Engine --> Aggregator : clusters contiguous disfluent windows
+Engine --> Summary : computes session-level fluency metrics
 Engine --> DB : persists session analysis
 
-API --> DB : session lifecycle state
+API --> DB : tracks session lifecycle
 
-UI --> DB : queries sessions, windows, events
-UI --> Model : fetches model info & thresholds
+UI --> DB : reads session results, history & trends
+UI --> InfEngine : reads model parameters & thresholds
 
 @enduml

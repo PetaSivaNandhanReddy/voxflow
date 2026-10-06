@@ -40,7 +40,7 @@ skinparam ArrowThickness 1.4
 node "ESP32 Edge Device" as Device #EFF6FF {
     artifact "INMP441 MEMS Mic\n(SCK:26, WS:25, SD:32)" as Mic #DBEAFE
     artifact "GPIO Controls\n(START:27, STOP:33, LED:4)" as Pins #DBEAFE
-    artifact "ESP32 Firmware\n(voxflow_esp32.ino)" as Firmware #BFDBFE
+    artifact "ESP32 Firmware\n(hardware/esp32_voxflow/)" as Firmware #BFDBFE
 
     Mic --> Firmware : I2S Bus
     Pins --> Firmware : GPIO Bus
@@ -53,32 +53,32 @@ node "ESP32 Edge Device" as Device #EFF6FF {
 node "Host Workstation (Local Computer)" as Host #F5F3FF {
 
     artifact "Python Serial Bridge\n(tools/esp32_serial_bridge.py)" as Bridge #EDE9FE
-    artifact "Flask REST API Service\n(localhost:5000)" as Flask #E0F2FE
-    artifact "Continuous Session Engine\n(app/services/session_engine.py)" as Engine #DDD6FE
+    artifact "Flask REST API Service\n(http://localhost:5000)" as Flask #E0F2FE
+    artifact "Session Processing Engine\n(app/processing/session_engine.py)" as Engine #DDD6FE
     artifact "HuBERT-D PyTorch Classifier\n(inference/engine.py)" as HuBERT #C4B5FD
     database "SQLite Persistence\n(voxflow.db)" as DB #ECFDF5
-    artifact "Streamlit Dashboard Server\n(localhost:8501)" as Streamlit #DCFCE7
+    artifact "Streamlit Dashboard Server\n(http://localhost:8501)" as Streamlit #DCFCE7
 
-    Bridge --> Flask : HTTP REST API
+    Bridge --> Flask : HTTP REST (POST /api/v1/session/*)
     Flask --> Engine : In-process call
     Engine --> HuBERT : PyTorch tensor evaluation
-    Engine --> DB : SQLite SQL write
-    DB --> Streamlit : SQLite SQL query
+    Engine --> DB : SQLite write (session/windows/events)
+    DB --> Streamlit : SQLite read
 }
 
 ' =========================================================
 ' CLIENT BROWSER NODE
 ' =========================================================
 
-node "Client Interface" as Client #F0FDF4 {
-    artifact "Web Browser\n(Streamlit UI)" as Browser #DCFCE7
+node "User Interface" as Client #F0FDF4 {
+    artifact "Web Browser\n(Streamlit Dashboard)" as Browser #DCFCE7
 }
 
 ' =========================================================
-' PHYSICAL CONNECTIONS
+' PHYSICAL & NETWORK CONNECTIONS
 ' =========================================================
 
-Device -- Host : USB Serial Connection\n(COM8 / 460800 Baud / 16 kHz PCM)
-Streamlit -- Browser : HTTP / WebSocket\n(http://localhost:8501)
+Device -- Host : USB Serial Connection\n(COM8 / 460800 Baud / 16 kHz Mono PCM)
+Streamlit -- Browser : HTTP\n(http://localhost:8501)
 
 @enduml
