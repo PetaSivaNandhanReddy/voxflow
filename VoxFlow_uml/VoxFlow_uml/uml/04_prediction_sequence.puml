@@ -30,46 +30,47 @@ skinparam participant {
 skinparam sequenceMessageAlign center
 
 participant "Flask REST API" as API #E0F2FE
-participant "ContinuousSessionEngine" as Engine #EDE9FE
-participant "HuBERTInferenceEngine" as HuBERT #C4B5FD
-participant "EventAggregator" as Aggregator #DDD6FE
-participant "SessionSummary" as Summary #DDD6FE
-database "SQLite\nvoxflow.db" as DB #ECFDF5
+participant "session_engine" as Engine #EDE9FE
+participant "VoxFlowInferenceEngine" as InfEngine #C4B5FD
+participant "HubertMultiLabelClassifier" as HubertModel #C4B5FD
+participant "event_aggregator" as Aggregator #DDD6FE
+participant "session_summary" as Summary #DDD6FE
+database "database\n(voxflow.db)" as DB #ECFDF5
 participant "Streamlit Dashboard" as UI #DCFCE7
 
-== 1. Audio Validation & Sliding-Window Slicing ==
+== 1. Audio Validation & Window Slicing ==
 
-API -> Engine : process_continuous_session(audio_bytes, session_id)
-Engine -> Engine : Validate audio (16 kHz mono, RMS check, >=3.0s)
-Engine -> Engine : Slicing into 3.0s windows with 1.0s hop step
+API -> Engine : process_continuous_session(audio_source, filename)
+Engine -> Engine : validate_and_load_session_audio(audio_source)
+Engine -> Engine : process_session_windows(audio, sr, engine)\n[3.0s window, 1.0s hop]
 
 == 2. Sliding-Window HuBERT-D Multi-Label Inference ==
 
 loop For Each 3.0-Second Audio Window
-    Engine -> HuBERT : predict_window(waveform_chunk)
-    HuBERT -> HuBERT : Forward pass through HuBERT-D backbone
-    HuBERT -> HuBERT : Multi-label classification head (Sigmoids)
-    HuBERT -> HuBERT : Apply locked thresholds (Rep: 0.77, Pro: 0.79, Blk: 0.57)
-    HuBERT --> Engine : {Rep, Pro, Blk probs, active_labels, is_fluent, confidence}
+    Engine -> InfEngine : predict_window(waveform, sample_rate)
+    InfEngine -> HubertModel : forward(input_values, attention_mask)
+    HubertModel --> InfEngine : logits
+    InfEngine -> InfEngine : Apply Sigmoids & locked thresholds\n(Rep: 0.77, Pro: 0.79, Blk: 0.57)
+    InfEngine --> Engine : {Rep, Pro, Blk probs, active_labels, is_fluent, confidence}
 end
 
-== 3. Event Aggregation & Summary Calculation ==
+== 3. Event Aggregation & Session Summary ==
 
 Engine -> Aggregator : aggregate_window_events(windows, thresholds)
-Aggregator -> Aggregator : Cluster consecutive active windows into events
-Aggregator --> Engine : [Aggregated disfluency events]
+Aggregator -> Aggregator : Cluster consecutive active windows into discrete events
+Aggregator --> Engine : [aggregated_events]
 
 Engine -> Summary : calculate_session_summary(windows, events, duration)
 Summary -> Summary : Compute Fluency Ratio & event counts
-Summary --> Engine : {summary_metrics}
+Summary --> Engine : {session_summary_metrics}
 
 == 4. Persistence & Dashboard Visualization ==
 
 Engine -> DB : save_session_analysis(session_id, windows, events, summary)
-DB --> Engine : Analysis persisted atomically
+DB --> Engine : Persisted atomically
 Engine --> API : 200 OK {session_id, fluency_ratio, events}
 
-UI -> DB : get_latest_session() / get_session_details(id)
+UI -> DB : get_latest_session() / get_session_details(session_id)
 DB --> UI : Stored session summary, windows, events
 UI -> UI : Render Summary Metrics, Probability Timeline,\nWindow Audit Table & Event Visualizer
 
