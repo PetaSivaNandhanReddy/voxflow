@@ -1,6 +1,5 @@
 @startuml
-
-title <size:20><b>VoxFlow - State Machine Diagram</b></size>\n<size:12>Speech Monitoring System States</size>
+title <size:20><b>VoxFlow - Session State Machine Diagram</b></size>\n<size:12>Session Lifecycle and Processing States</size>
 
 top to bottom direction
 
@@ -14,38 +13,38 @@ skinparam state {
     BorderThickness 1.5
     FontColor #0F172A
     FontSize 11
+    FontStyle bold
 }
 
 skinparam ArrowColor #64748B
 skinparam ArrowThickness 1.4
 
+state "IDLE" as Idle #DBEAFE : System waiting for new session\nESP32 Status LED is OFF
 
-state "Idle" as Idle #DBEAFE
-state "Receiving Audio" as Receive #E0F2FE
-state "Buffering Audio" as Buffer #DDD6FE
-state "Checking Speech" as Speech #EDE9FE
-state "Extracting Features" as Features #EDE9FE
-state "Predicting Fluency" as Predict #C4B5FD
-state "Storing Result" as Store #DCFCE7
+state "SESSION_STARTED" as Started #E0F2FE : API session record initialized in SQLite\nSession status set to STARTED
 
+state "RECORDING" as Recording #BFDBFE : Microphone actively capturing audio\nESP32 Status LED is ON (GPIO4 HIGH)
+
+state "AUDIO_READY" as AudioReady #DDD6FE : Audio capture terminated & validated\nSession status set to STOPPED\nESP32 Status LED is OFF
+
+state "ANALYZING" as Analyzing #C4B5FD : Sliding-window HuBERT-D inference\n& temporal event aggregation in progress
+
+state "ANALYZED" as Analyzed #DCFCE7 : Results persisted to SQLite (voxflow.db)\nReady for interactive dashboard review
 
 [*] --> Idle
 
-Idle --> Receive : Audio chunk received
-Receive --> Buffer : Add audio chunk
+Idle --> Started : POST /api/v1/session/start\nor WAV selection in UI
 
-Buffer --> Buffer : Window not ready
-Buffer --> Speech : Audio window ready
+Started --> Recording : User presses START button (GPIO27)\nor bridge issues serial START
 
-Speech --> Receive : No speech detected
-Speech --> Features : Speech detected
+Recording --> AudioReady : Physical STOP button (GPIO33),\n60-second limit, or WAV file uploaded
 
-Features --> Predict : Features extracted
-Predict --> Store : Prediction generated
+AudioReady --> Analyzing : POST /api/v1/session/<id>/analyze\nor "Run Full Session Analysis" clicked
 
-Store --> Receive : Result saved
+Analyzing --> Analyzed : Inference complete, thresholds applied,\nevents aggregated & summary computed
 
-Idle --> [*] : System stopped
+Analyzed --> Idle : Results stored; ready for next session
 
+Idle --> [*] : System shutdown
 
 @enduml

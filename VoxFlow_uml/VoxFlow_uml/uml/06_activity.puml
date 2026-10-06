@@ -1,10 +1,9 @@
 @startuml
-
-title <size:20><b>VoxFlow - Activity Diagram</b></size>\n<size:12>End-to-End Speech Fluency Monitoring Workflow</size>
+title <size:20><b>VoxFlow - Activity Diagram</b></size>\n<size:12>End-to-End Speech Session Analysis Workflow</size>
 
 skinparam backgroundColor #F8FAFC
 skinparam shadowing false
-skinparam dpi 160
+skinparam dpi 170
 
 skinparam activity {
     BackgroundColor #FFFFFF
@@ -22,42 +21,39 @@ skinparam activity {
 skinparam ArrowColor #64748B
 skinparam ArrowThickness 1.3
 
-
 start
 
-#DBEAFE:Patient speaks;
-#DBEAFE:INMP441 captures speech;
-#DBEAFE:ESP8266 receives audio;
-#DBEAFE:Send audio via Wi-Fi;
+#DBEAFE:Choose Audio Input Path;
 
-#E0F2FE:Receive audio chunk;
-#DDD6FE:Buffer audio;
+if (Input Method?) then (ESP32 Hardware)
 
-if (Audio window ready?) then (Yes)
+    #BFDBFE:Press START button (GPIO27);\nCapture 16 kHz PCM via INMP441;
+    #BFDBFE:Stream audio over USB Serial;\nAssemble WAV via Python Bridge;
+    #BFDBFE:Submit WAV to Flask Session API;
 
-    #DDD6FE:Check speech activity;
+else (WAV Upload)
 
-    if (Speech detected?) then (Yes)
-
-        #EDE9FE:Extract audio features;
-        #C4B5FD:Predict fluency / disfluency;
-        #DCFCE7:Store prediction in SQLite;
-        #DCFCE7:Update patient history and trends;
-        #EDE9FE:Display latest result;
-        #BBF7D0:Generate clinical report / export;
-        #FEF3C7:Share report with speech therapist;
-
-    else (No)
-
-        #F8FAFC:Wait for next audio chunk;
-
-    endif
-
-else (No)
-
-    #F8FAFC:Continue buffering;
+    #DCFCE7:Upload existing 16 kHz WAV\nvia Streamlit Dashboard;
 
 endif
+
+#EDE9FE:Validate & Standardize Audio\n(16 kHz Mono, RMS check, >=3.0s);
+
+#EDE9FE:Slice recording into 3.0s windows\nwith 1.0s sliding hop step;
+
+#C4B5FD:Execute HuBERT-D multi-label\ninference on each 3.0s window;
+
+#C4B5FD:Generate independent probabilities:\nRepetition, Prolongation, Block;
+
+#DDD6FE:Apply locked validation thresholds\n(Rep: 0.77, Pro: 0.79, Blk: 0.57);
+
+#DDD6FE:Aggregate consecutive active windows\ninto discrete disfluency events;
+
+#DDD6FE:Compute Session Fluency Ratio &\noverall session summary metrics;
+
+#ECFDF5:Persist session record, window audit data,\nand event timeline into SQLite (voxflow.db);
+
+#DCFCE7:Render interactive results in Streamlit:\n- Key Metric Cards & Fluency Ratio\n- Temporal Multi-Label Probability Timeline\n- Window-Level Model Output Audit Table\n- Event Visualization & Longitudinal Trends;
 
 stop
 

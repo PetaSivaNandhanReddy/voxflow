@@ -1,12 +1,11 @@
 @startuml
-
-title <size:20><b>VoxFlow - Audio Processing Sequence</b></size>\n<size:12>Real-Time Speech Analysis</size>
+title <size:20><b>VoxFlow - Speech Session Capture Sequence</b></size>\n<size:12>ESP32 Hardware, Python Serial Bridge & REST Ingestion</size>
 
 hide footbox
 
 skinparam backgroundColor #F8FAFC
 skinparam shadowing false
-skinparam dpi 160
+skinparam dpi 170
 
 skinparam sequence {
     ArrowColor #475569
@@ -30,52 +29,61 @@ skinparam participant {
 
 skinparam sequenceMessageAlign center
 
-actor "ESP8266" as ESP #DBEAFE
-
+actor "User" as User #DBEAFE
+participant "ESP32 Dev Module" as ESP #BFDBFE
+participant "INMP441 Microphone" as Mic #DBEAFE
+participant "Python Serial Bridge" as Bridge #EDE9FE
 participant "Flask REST API" as API #E0F2FE
-participant "PipelineRunner" as Pipeline #EDE9FE
-participant "Audio Buffer" as Buffer #DDD6FE
-participant "Feature Extractor" as Features #EDE9FE
-participant "Fluency Predictor" as Predictor #C4B5FD
 
+== 1. Initialization & Handshake ==
 
-ESP -> API : Send audio chunk
+Bridge -> ESP : PING\n(USB Serial / 460800 baud)
+ESP --> Bridge : PONG
 
-API -> Pipeline : processChunk()
+Bridge -> API : POST /api/v1/session/start
+API --> Bridge : 201 Created (session_id)
 
-Pipeline -> Buffer : addChunk()
+== 2. Audio Capture Execution ==
 
-
-alt Buffer not ready
-
-    Buffer --> Pipeline : Audio accumulating
-    Pipeline --> API : Accumulating status
-    API --> ESP : "Buffering..."
-
-else Buffer ready
-
-    Buffer --> Pipeline : Audio window ready
-
-    Pipeline -> Pipeline : Check speech activity\n(RMS energy)
-
-    alt No speech detected
-
-        Pipeline --> API : Idle status
-        API --> ESP : "Listening..."
-
-    else Speech detected
-
-        Pipeline -> Features : Extract features
-        Features --> Pipeline : Log-Mel features
-
-        Pipeline -> Predictor : Predict
-        Predictor --> Pipeline : Class + confidence
-
-        Pipeline --> API : Prediction result
-        API --> ESP : Fluency result
-
-    end
-
+alt Physical-Buttons Mode (--physical-buttons)
+    User -> ESP : Press START Button (GPIO27)
+else Serial-Start Mode (Default)
+    Bridge -> ESP : START command
 end
+
+ESP -> ESP : Status LED ON (GPIO4 HIGH)
+
+loop Continuous I2S Sampling (16 kHz 16-bit Mono)
+    ESP -> Mic : Read I2S PCM (SCK: 26, WS: 25, SD: 32)
+    Mic --> ESP : 16-bit audio samples
+    ESP -> ESP : Store in buffer
+end
+
+alt User Terminated
+    User -> ESP : Press STOP Button (GPIO33)
+else Auto Timeout
+    ESP -> ESP : 60-second limit reached
+end
+
+== 3. Dynamic Framing & Serial Transmission ==
+
+ESP -> ESP : Calculate exact AUDIO_BYTES
+ESP -> Bridge : Header: RECORDING\nAUDIO_BYTES=<exact_bytes>\nSAMPLE_RATE=16000\nFORMAT=PCM_S16LE_MONO
+
+ESP -> Bridge : Binary PCM stream (exact AUDIO_BYTES)
+ESP -> Bridge : DONE marker
+ESP -> ESP : Status LED OFF (GPIO4 LOW)
+
+== 4. Local WAV Assembly & API Ingestion ==
+
+Bridge -> Bridge : Write WAV container (16 kHz, 16-bit mono)
+Bridge -> API : POST /api/v1/session/<session_id>/audio (multipart WAV)
+API --> Bridge : 200 OK (Audio uploaded)
+
+Bridge -> API : POST /api/v1/session/<session_id>/stop
+API --> Bridge : 200 OK (Session stopped)
+
+Bridge -> API : POST /api/v1/session/<session_id>/analyze
+API --> Bridge : 200 OK (Analysis complete)
 
 @enduml

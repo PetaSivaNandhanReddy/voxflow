@@ -1,12 +1,11 @@
 @startuml
-
-title <size:20><b>VoxFlow - Prediction & Patient Dashboard Sequence</b></size>\n<size:12>Result Storage, Analytics and Clinical Report Flow</size>
+title <size:20><b>VoxFlow - Session Analysis Sequence</b></size>\n<size:12>Sliding-Window HuBERT-D Inference and Event Aggregation</size>
 
 hide footbox
 
 skinparam backgroundColor #F8FAFC
 skinparam shadowing false
-skinparam dpi 160
+skinparam dpi 170
 
 skinparam sequence {
     ArrowColor #475569
@@ -30,39 +29,48 @@ skinparam participant {
 
 skinparam sequenceMessageAlign center
 
-
 participant "Flask REST API" as API #E0F2FE
-participant "DatabaseManager" as DBManager #DCFCE7
-database "SQLite\nvoxflow_local.db" as DB #ECFDF5
-participant "Streamlit\nDashboard" as UI #EDE9FE
-actor "Patient / User" as Patient #DBEAFE
-actor "Speech Therapist" as Therapist #FEF3C7
+participant "ContinuousSessionEngine" as Engine #EDE9FE
+participant "HuBERTInferenceEngine" as HuBERT #C4B5FD
+participant "EventAggregator" as Aggregator #DDD6FE
+participant "SessionSummary" as Summary #DDD6FE
+database "SQLite\nvoxflow.db" as DB #ECFDF5
+participant "Streamlit Dashboard" as UI #DCFCE7
 
+== 1. Audio Validation & Sliding-Window Slicing ==
 
-== Prediction Storage ==
+API -> Engine : process_continuous_session(audio_bytes, session_id)
+Engine -> Engine : Validate audio (16 kHz mono, RMS check, >=3.0s)
+Engine -> Engine : Slicing into 3.0s windows with 1.0s hop step
 
-API -> DBManager : savePrediction(...)
-DBManager -> DB : INSERT prediction
-DB --> DBManager : Prediction stored
-DBManager --> API : Saved successfully
+== 2. Sliding-Window HuBERT-D Multi-Label Inference ==
 
+loop For Each 3.0-Second Audio Window
+    Engine -> HuBERT : predict_window(waveform_chunk)
+    HuBERT -> HuBERT : Forward pass through HuBERT-D backbone
+    HuBERT -> HuBERT : Multi-label classification head (Sigmoids)
+    HuBERT -> HuBERT : Apply locked thresholds (Rep: 0.77, Pro: 0.79, Blk: 0.57)
+    HuBERT --> Engine : {Rep, Pro, Blk probs, active_labels, is_fluent, confidence}
+end
 
-== Patient Dashboard ==
+== 3. Event Aggregation & Summary Calculation ==
 
-Patient -> UI : Open dashboard
-UI -> DB : Query patient\nprediction history
-DB --> UI : Sessions + predictions
+Engine -> Aggregator : aggregate_window_events(windows, thresholds)
+Aggregator -> Aggregator : Cluster consecutive active windows into events
+Aggregator --> Engine : [Aggregated disfluency events]
 
-UI --> Patient : Display latest result,\nhistory and fluency trends
+Engine -> Summary : calculate_session_summary(windows, events, duration)
+Summary -> Summary : Compute Fluency Ratio & event counts
+Summary --> Engine : {summary_metrics}
 
+== 4. Persistence & Dashboard Visualization ==
 
-== Clinical Report ==
+Engine -> DB : save_session_analysis(session_id, windows, events, summary)
+DB --> Engine : Analysis persisted atomically
+Engine --> API : 200 OK {session_id, fluency_ratio, events}
 
-Patient -> UI : Generate clinical report
-UI -> DB : Retrieve selected\nsession records
-DB --> UI : Session data
-
-UI --> Patient : Report / CSV export
-Patient -> Therapist : Share report during\nclinical consultation
+UI -> DB : get_latest_session() / get_session_details(id)
+DB --> UI : Stored session summary, windows, events
+UI -> UI : Render Summary Metrics, Probability Timeline,\nWindow Audit Table & Event Visualizer
 
 @enduml

@@ -1,6 +1,5 @@
 @startuml
-
-title <size:20><b>VoxFlow - Audio Capture & Transmission Flowchart</b></size>\n<size:12>ESP8266 and INMP441 Workflow</size>
+title <size:20><b>VoxFlow - Hardware Capture & Transmission Flow</b></size>\n<size:12>ESP32 Firmware & USB Serial Protocol Execution</size>
 
 skinparam backgroundColor #F8FAFC
 skinparam shadowing false
@@ -24,45 +23,40 @@ skinparam activity {
 skinparam ArrowColor #64748B
 skinparam ArrowThickness 1.3
 
-
 start
 
-#DBEAFE:Initialize ESP8266;
-#DBEAFE:Initialize INMP441 microphone;
+#DBEAFE:Initialize ESP32 Dev Module;\nConfigure I2S peripheral (SCK: 26, WS: 25, SD: 32);
+#DBEAFE:Set START (GPIO27) & STOP (GPIO33) to INPUT_PULLUP;\nSet Status LED (GPIO4) to OUTPUT (LOW);
+#DBEAFE:Allocate audio buffer (PSRAM / Internal SRAM);\nEmit "READY" & synchronize via PING / PONG;
 
-:Connect to Wi-Fi;
+if (START Trigger Received?) then (Physical Button or Serial START)
 
-if (Wi-Fi connected?) then (Yes)
+    #BFDBFE:Turn Status LED ON (GPIO4 HIGH);\nClear I2S DMA buffer;
 
-    :Wait for patient speech;
+    repeat
+        #BFDBFE:Sample 16 kHz audio via INMP441 I2S;\nConvert to 16-bit PCM with clamping;
+        #BFDBFE:Store PCM samples in buffer;
 
-    :Capture audio samples;
-
-    :Build audio chunk;
-
-    if (Chunk ready?) then (Yes)
-
-        :Send audio chunk\nvia HTTP to Flask API;
-
-        if (Transmission successful?) then (Yes)
-
-            :Continue monitoring;
-
-        else (No)
-
-            :Retry transmission;
-
+        if (STOP Requested?) then (Yes)
+            #DDD6FE:Terminate capture loop early;
+            break
         endif
 
-    else (No)
+    repeat while (60-second maximum reached?) is (No)
 
-        :Continue capturing audio;
+    #DDD6FE:Calculate exact dynamic AUDIO_BYTES;
 
-    endif
+    #EDE9FE:Emit Protocol Header:\nRECORDING\nAUDIO_BYTES=<exact_bytes>\nSAMPLE_RATE=16000\nFORMAT=PCM_S16LE_MONO;
+
+    #EDE9FE:Transmit exact binary PCM payload\nover USB Serial (460800 baud);
+
+    #EDE9FE:Flush UART & transmit "DONE" marker;
+
+    #DCFCE7:Turn Status LED OFF (GPIO4 LOW);\nReturn to idle listening state;
 
 else (No)
 
-    :Retry Wi-Fi connection;
+    #F8FAFC:Remain in idle standby;
 
 endif
 

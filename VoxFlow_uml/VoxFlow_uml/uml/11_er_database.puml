@@ -1,6 +1,5 @@
 @startuml
-
-title <size:20><b>VoxFlow - ER Database Diagram</b></size>\n<size:12>SQLite Database Schema</size>
+title <size:20><b>VoxFlow - ER Database Schema Diagram</b></size>\n<size:12>SQLite Relational Storage Architecture (voxflow.db)</size>
 
 left to right direction
 
@@ -19,57 +18,61 @@ skinparam entity {
 skinparam ArrowColor #64748B
 skinparam ArrowThickness 1.4
 
-
 entity "users" as Users #DBEAFE {
-    * user_id : INTEGER <<PK>>
+    * id : TEXT <<PK>>
     --
-    full_name : TEXT
-    age : INTEGER
-    therapist_name : TEXT
-    baseline_embedding : BLOB
+    name : TEXT
     created_at : TIMESTAMP
 }
 
-
 entity "sessions" as Sessions #EDE9FE {
-    * session_id : INTEGER <<PK>>
+    * id : TEXT <<PK>>
     --
-    user_id : INTEGER <<FK>>
-    session_name : TEXT
-    start_time : TIMESTAMP
-    end_time : TIMESTAMP
-    total_audio_length : REAL
+    user_id : TEXT <<FK>>
+    started_at : TIMESTAMP
+    ended_at : TIMESTAMP
+    duration_sec : REAL
+    audio_path : TEXT
+    audio_filename : TEXT
+    model_name : TEXT
+    status : TEXT
+    total_windows : INTEGER
+    fluent_windows : INTEGER
+    fluency_ratio : REAL
+    repetition_count : INTEGER
+    prolongation_count : INTEGER
+    block_count : INTEGER
+    created_at : TIMESTAMP
 }
 
-
-entity "predictions" as Predictions #DDD6FE {
-    * pred_id : INTEGER <<PK>>
+entity "session_windows" as Windows #DDD6FE {
+    * id : INTEGER <<PK AUTOINCREMENT>>
     --
-    session_id : INTEGER <<FK>>
-    timestamp : TIMESTAMP
-    fluency_score : REAL
-    stutter_type : TEXT
+    session_id : TEXT <<FK>>
+    window_index : INTEGER
+    start_time : REAL
+    end_time : REAL
+    prob_repetition : REAL
+    prob_prolongation : REAL
+    prob_block : REAL
+    is_fluent : INTEGER
+    active_labels : TEXT
     confidence : REAL
-    audio_file_path : TEXT
-    synced_flag : INTEGER
 }
 
-
-entity "reports" as Reports #DCFCE7 {
-    * report_id : INTEGER <<PK>>
+entity "session_events" as Events #DCFCE7 {
+    * id : INTEGER <<PK AUTOINCREMENT>>
     --
-    session_id : INTEGER <<FK>>
-    user_id : INTEGER <<FK>>
-    generated_at : TIMESTAMP
-    summary_notes : TEXT
-    pdf_file_path : TEXT
+    session_id : TEXT <<FK>>
+    event_type : TEXT
+    start_time : REAL
+    end_time : REAL
+    confidence : REAL
+    supporting_windows : INTEGER
 }
 
-
-Users ||--o{ Sessions : has
-Sessions ||--o{ Predictions : contains
-Users ||--o{ Reports : generates
-Sessions ||--o{ Reports : produces
-
+Users ||--o{ Sessions : "records (1:N)"
+Sessions ||--o{ Windows : "contains (1:N)"
+Sessions ||--o{ Events : "aggregates (1:N)"
 
 @enduml

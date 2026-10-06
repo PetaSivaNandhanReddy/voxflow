@@ -1,7 +1,5 @@
 @startuml
-title <size:20><b>VoxFlow - Class Diagram</b></size>\n<size:12>Core Software Components</size>
-
-left to right direction
+title <size:20><b>VoxFlow - Class Diagram</b></size>\n<size:12>Core Software Architecture & Processing Pipeline</size>
 
 skinparam backgroundColor #F8FAFC
 skinparam shadowing false
@@ -18,7 +16,7 @@ skinparam class {
     ArrowColor #64748B
 }
 
-skinparam ArrowThickness 1.5
+skinparam ArrowThickness 1.4
 
 skinparam package {
     BackgroundColor #F8FAFC
@@ -30,82 +28,92 @@ skinparam package {
 }
 
 ' =========================================================
-' API
+' API & CONTROLLER LAYER
 ' =========================================================
 
-class "VoxFlowAPI" as API <<controller>> #DBEAFE {
-    + uploadAudio()
-    + getPredictions()
-    + submitFeedback()
-    + retrainModel()
-}
+package "API & Web Layer" #EFF6FF {
 
-' =========================================================
-' AUDIO PROCESSING
-' =========================================================
-
-package "Audio Processing" #EEF2FF {
-
-    class "PipelineRunner" as Pipeline #C4B5FD {
-        + processChunk()
+    class "FlaskSessionAPI" as API <<controller>> #DBEAFE {
+        + start_session(user_id) : json
+        + upload_audio(session_id, file) : json
+        + stop_session(session_id) : json
+        + analyze_session(session_id) : json
+        + get_session(session_id) : json
+        + get_latest_session() : json
     }
 
-    class "AudioChunkAccumulator" as Buffer #DDD6FE {
-        + addChunk()
-        + resetSession()
-    }
-
-    class "FeatureExtractor" as Features #EDE9FE {
-        + extractFeatures()
+    class "DashboardApp" as UI <<presentation>> #DCFCE7 {
+        + render_analyze_session()
+        + render_current_session()
+        + render_session_history()
+        + render_fluency_trends()
+        + render_model_info()
     }
 }
 
 ' =========================================================
-' MACHINE LEARNING
+' PROCESSING & INFERENCE LAYER
 ' =========================================================
 
-package "Machine Learning" #F5F3FF {
+package "Session Processing & AI Engine" #F5F3FF {
 
-    class "FluencyPredictor" as Predictor #C4B5FD {
-        + predict()
-        + reloadWeights()
+    class "ContinuousSessionEngine" as Engine #EDE9FE {
+        + process_continuous_session(audio_source, filename) : tuple
+        + validate_and_load_session_audio(audio_source) : tuple
+        + slice_and_predict_windows(audio, sr, engine) : list
     }
 
-    class "StutterTransferClassifier" as Model #DDD6FE {
-        + forward()
+    class "HuBERTInferenceEngine" as Model #C4B5FD {
+        - model : HuBERTMultiLabel
+        - thresholds : dict
+        - device : torch.device
+        + predict_window(waveform, sample_rate) : dict
+        + get_model_info() : dict
+        - _apply_thresholds(probabilities) : tuple
     }
 
-    class "OnlineTrainer" as Trainer #FEF3C7 {
-        + addFeedbackSample()
-        + trainOnline()
+    class "EventAggregator" as Aggregator #DDD6FE {
+        + aggregate_window_events(windows, thresholds) : list
+        - _cluster_consecutive_active(windows, category) : list
+    }
+
+    class "SessionSummary" as Summary #DDD6FE {
+        + calculate_session_summary(windows, events, duration) : dict
+        + compute_fluency_ratio(total_windows, fluent_windows) : float
     }
 }
 
 ' =========================================================
-' DATA
+' DATA PERSISTENCE LAYER
 ' =========================================================
 
-class "DatabaseManager" as DB <<repository>> #DCFCE7 {
-    + savePrediction()
-    + fetchPredictions()
+package "Data Persistence Layer" #ECFDF5 {
+
+    class "DatabaseManager" as DB <<repository>> #DCFCE7 {
+        - db_path : Path
+        + init_db()
+        + save_session_record(session_id, ...)
+        + save_session_analysis(session_id, windows, events, summary)
+        + save_session(summary, windows, events)
+        + get_session_details(session_id) : dict
+        + get_latest_session() : dict
+        + get_all_sessions(limit) : list
+    }
 }
 
 ' =========================================================
 ' RELATIONSHIPS
 ' =========================================================
 
-API --> Pipeline : process audio
+API --> Engine : triggers processing
+Engine --> Model : sliding-window inference (3.0s/1.0s)
+Engine --> Aggregator : clusters detected disfluencies
+Engine --> Summary : calculates session metrics
+Engine --> DB : persists session analysis
 
-Pipeline --> Buffer : buffer chunks
-Pipeline --> Features : extract features
-Pipeline --> Predictor : predict
+API --> DB : session lifecycle state
 
-Predictor --> Model : uses
-
-API --> DB : store / retrieve data
-
-API --> Trainer : retrain model
-
-Trainer --> Model : update weights
+UI --> DB : queries sessions, windows, events
+UI --> Model : fetches model info & thresholds
 
 @enduml

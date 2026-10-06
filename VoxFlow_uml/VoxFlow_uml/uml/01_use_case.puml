@@ -1,17 +1,13 @@
 @startuml
-title <size:20><b>VoxFlow - Use Case Diagram</b></size>\n<size:12>AI-Assisted Speech Fluency Monitoring System</size>
+title <size:20><b>VoxFlow - Use Case Diagram</b></size>\n<size:12>Speech Fluency & Disfluency Session Analyzer</size>
 
 left to right direction
 
-' =========================================================
-' PAGE / LAYOUT
-' =========================================================
-
 skinparam backgroundColor #F8FAFC
 skinparam shadowing false
-skinparam dpi 160
+skinparam dpi 170
 
-skinparam nodesep 35
+skinparam nodesep 30
 skinparam ranksep 35
 
 skinparam actorStyle awesome
@@ -27,7 +23,7 @@ skinparam usecase {
     BackgroundColor #FFFFFF
     BorderColor #475569
     BorderThickness 1.5
-    FontColor #1E293B
+    FontColor #0F172A
     FontSize 11
     FontStyle bold
 }
@@ -45,82 +41,59 @@ skinparam actor {
 ' ACTORS
 ' =========================================================
 
-actor "ESP8266\nHardware Device" as ESP #E0F2FE
-actor "Patient / User" as Patient #DBEAFE
+actor "User / Speaker" as User #DBEAFE
+actor "Speech Therapist\n(Optional Reviewer)" as Therapist #FEF3C7
 
 ' =========================================================
-' VOXFLOW SYSTEM
+' SYSTEM BOUNDARY
 ' =========================================================
 
-rectangle "VoxFlow Speech Fluency\nMonitoring System" {
+rectangle "VoxFlow Session Analysis System" {
 
-    ' -----------------------------------------------------
-    ' AUDIO PROCESSING
-    ' -----------------------------------------------------
+    ' Audio Input & Ingestion
+    usecase "Record Speech Session\n(ESP32 Hardware)" as UC_Record #DBEAFE
+    usecase "Upload WAV Session\n(Direct Testing)" as UC_Upload #DBEAFE
 
-    usecase "Capture & Send\nAudio" as UC_Send #DBEAFE
+    ' Core Analysis
+    usecase "Analyze Speech Session" as UC_Analyze #EDE9FE
+    usecase "Detect Disfluencies\n(Repetition, Prolongation, Block)" as UC_Detect #F5F3FF
+    usecase "Aggregate Temporal Events" as UC_Aggregate #F5F3FF
 
-    usecase "Analyze Speech" as UC_Analyze #EDE9FE
-
-    usecase "Buffer Audio" as UC_Buffer #F5F3FF
-    usecase "Check Speech\nActivity" as UC_VAD #F5F3FF
-    usecase "Extract Audio\nFeatures" as UC_Feature #F5F3FF
-    usecase "Classify\nDisfluency" as UC_Classify #F5F3FF
-    usecase "Store\nPrediction" as UC_Store #F5F3FF
-
-    ' -----------------------------------------------------
-    ' PATIENT DASHBOARD
-    ' -----------------------------------------------------
-
-    usecase "View Prediction\nHistory" as UC_History #DCFCE7
-    usecase "View Fluency\nTrends" as UC_Trends #DCFCE7
-    usecase "Generate Clinical\nReport" as UC_Report #BBF7D0
+    ' Visualization & Inspection
+    usecase "View Session Result &\nSummary Metrics" as UC_ViewResult #DCFCE7
+    usecase "View Window-Level\nModel Predictions" as UC_ViewWindows #DCFCE7
+    usecase "View Multi-Label\nProbability Timeline" as UC_ViewTimeline #DCFCE7
+    usecase "View Session History\n& Long-Term Trends" as UC_ViewHistory #DCFCE7
+    usecase "View Model Architecture\n& Benchmark Info" as UC_ViewModel #DCFCE7
 }
 
 ' =========================================================
-' HARDWARE INTERACTION
+' USER RELATIONSHIPS
 ' =========================================================
 
-ESP --> UC_Send : audio data
+User --> UC_Record
+User --> UC_Upload
+User --> UC_ViewResult
+User --> UC_ViewWindows
+User --> UC_ViewTimeline
+User --> UC_ViewHistory
+User --> UC_ViewModel
 
 ' =========================================================
-' INTERNAL AUDIO ANALYSIS
+' INCLUSION & ANALYSIS FLOW
 ' =========================================================
 
-UC_Send --> UC_Analyze : <<include>>
+UC_Record ..> UC_Analyze : <<include>>
+UC_Upload ..> UC_Analyze : <<include>>
 
-UC_Analyze --> UC_Buffer : <<include>>
-UC_Analyze --> UC_VAD : <<include>>
-UC_Analyze --> UC_Feature : <<include>>
-UC_Analyze --> UC_Classify : <<include>>
-UC_Analyze --> UC_Store : <<include>>
+UC_Analyze ..> UC_Detect : <<include>>
+UC_Analyze ..> UC_Aggregate : <<include>>
 
 ' =========================================================
-' PATIENT / USER DASHBOARD INTERACTION
+' THERAPIST RELATIONSHIPS
 ' =========================================================
 
-Patient --> UC_History
-Patient --> UC_Trends
-Patient --> UC_Report
-
-' =========================================================
-' REPORT INFORMATION
-' =========================================================
-
-note right of UC_Report
-  Report can be shared with
-  a speech therapist during
-  a consultation.
-end note
-
-' =========================================================
-' HARDWARE INFORMATION
-' =========================================================
-
-note left of ESP
-  INMP441 microphone
-  Red / Green LEDs
-  Wi-Fi communication
-end note
+Therapist --> UC_ViewResult
+Therapist --> UC_ViewHistory
 
 @enduml

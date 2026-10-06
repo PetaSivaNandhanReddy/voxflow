@@ -1,6 +1,5 @@
 @startuml
-
-title <size:20><b>VoxFlow - Prediction Storage & Dashboard Flowchart</b></size>\n<size:12>Result Storage, Analytics and Clinical Report Workflow</size>
+title <size:20><b>VoxFlow - Event Aggregation & Session Analytics Flow</b></size>\n<size:12>Temporal Clustering, Metric Calculation & Dashboard Visualization</size>
 
 skinparam backgroundColor #F8FAFC
 skinparam shadowing false
@@ -24,36 +23,19 @@ skinparam activity {
 skinparam ArrowColor #64748B
 skinparam ArrowThickness 1.3
 
-
 start
 
-#DCFCE7:Receive prediction\nand confidence;
+#E0F2FE:Receive window-level prediction array\nfrom ContinuousSessionEngine;
 
-#DCFCE7:Identify patient\nand active session;
+#EDE9FE:Execute Temporal Event Aggregation:\n- Iterate across active window categories\n- Group consecutive overlapping disfluent windows\n- Calculate event start time, end time & duration\n- Compute average detection confidence;
 
-#DCFCE7:Store prediction\nin SQLite;
+#DDD6FE:Calculate Session Fluency Metrics:\n- Count Total Windows & Fluent Windows\n- Compute Session Fluency Ratio = (Fluent / Total)\n- Count Repetition, Prolongation & Block events;
 
-#EDE9FE:Open patient dashboard;
+#ECFDF5:Persist atomic session record in SQLite (voxflow.db):\n- UPDATE sessions (duration, status="ANALYZED", metrics)\n- INSERT INTO session_windows (probabilities, labels, confidence)\n- INSERT INTO session_events (type, start, end, confidence);
 
-#EDE9FE:Retrieve prediction\nhistory;
+#DCFCE7:Streamlit Dashboard queries latest / selected session;
 
-#EDE9FE:Calculate and display\nfluency trends;
-
-#EDE9FE:Display latest result\nand history;
-
-if (Clinical report requested?) then (Yes)
-
-    #BBF7D0:Retrieve selected\nsession records;
-
-    #BBF7D0:Generate clinical\nreport / export;
-
-    #FEF3C7:Share report with\nspeech therapist;
-
-else (No)
-
-    #F8FAFC:Continue monitoring;
-
-endif
+#DCFCE7:Render Interactive Clinical Visualizations:\n- Key Summary Cards (Duration, Fluency %, Counts)\n- Multi-Label Probability Timeline (Rep, Pro, Blk curves)\n- Window-Level Model Output Audit Table\n- Aggregated Disfluency Event Visualizer\n- Longitudinal Speech Fluency Trends;
 
 stop
 

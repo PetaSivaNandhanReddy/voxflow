@@ -1,6 +1,5 @@
 @startuml
-
-title <size:20><b>VoxFlow - Speech Fluency Prediction Flowchart</b></size>\n<size:12>Audio Processing and AI Prediction Workflow</size>
+title <size:20><b>VoxFlow - HuBERT-D Session Analysis Flow</b></size>\n<size:12>Continuous Audio Validation & Sliding-Window Inference</size>
 
 skinparam backgroundColor #F8FAFC
 skinparam shadowing false
@@ -24,38 +23,35 @@ skinparam activity {
 skinparam ArrowColor #64748B
 skinparam ArrowThickness 1.3
 
-
 start
 
-#E0F2FE:Receive audio chunk\nfrom ESP8266;
+#E0F2FE:Receive session audio\n(WAV container / 16 kHz mono);
 
-#DDD6FE:Add chunk to audio buffer;
+#E0F2FE:Validate audio signal:\n- Minimum duration >= 3.0 seconds\n- RMS speech energy check\n- Float32 normalization in [-1.0, 1.0];
 
-if (Audio window ready?) then (Yes)
+#EDE9FE:Initialize sliding-window parameters:\n- Window Duration = 3.0s (48,000 samples)\n- Window Step Hop = 1.0s (16,000 samples);
 
-    #EDE9FE:Check speech activity;
+while (Window slice available?) is (Yes)
 
-    if (Speech detected?) then (Yes)
+    #EDE9FE:Extract 3.0-second waveform segment;
 
-        #EDE9FE:Extract audio features;
+    #C4B5FD:Pass waveform to HuBERT-D\n(facebook/hubert-base-ls960 backbone);
 
-        #C4B5FD:Run fluency prediction\nmodel;
+    #C4B5FD:Compute 3 independent multi-label\nsigmoid posterior probabilities;
 
-        #C4B5FD:Generate prediction\nand confidence;
+    #DDD6FE:Evaluate against locked decision thresholds:\n- Repetition: Prob >= 0.77\n- Prolongation: Prob >= 0.79\n- Block: Prob >= 0.57;
 
-        #DCFCE7:Return prediction result\nto Flask API;
-
+    if (Any threshold exceeded?) then (Yes)
+        #FCA5A5:Classify window as DISFLUENT;\nAssign active label(s) & confidence;
     else (No)
-
-        #F8FAFC:Return listening /\nidle status;
-
+        #86EFAC:Classify window as FLUENT;\nAssign confidence = 0.99;
     endif
 
-else (No)
+    #DCFCE7:Append window record:\n{start_time, end_time, probabilities, active_labels};
 
-    #F8FAFC:Continue buffering;
+endwhile (No)
 
-endif
+#DCFCE7:Pass complete window prediction list\nto Temporal Event Aggregator;
 
 stop
 

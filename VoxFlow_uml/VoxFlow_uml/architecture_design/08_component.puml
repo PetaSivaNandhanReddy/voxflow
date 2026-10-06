@@ -1,6 +1,5 @@
 @startuml
-
-title <size:20><b>VoxFlow - Component Architecture Diagram</b></size>\n<size:12>AI-Assisted Speech Fluency Monitoring System</size>
+title <size:20><b>VoxFlow - Component Architecture Diagram</b></size>\n<size:12>Speech Fluency & Disfluency Session Analyzer</size>
 
 skinparam backgroundColor #F8FAFC
 skinparam shadowing false
@@ -30,6 +29,7 @@ skinparam database {
     BorderThickness 1.5
     FontColor #0F172A
     FontSize 10
+    FontStyle bold
 }
 
 skinparam actor {
@@ -42,64 +42,63 @@ skinparam actor {
 skinparam ArrowColor #64748B
 skinparam ArrowThickness 1.4
 
+' =========================================================
+' 1. HARDWARE LAYER
+' =========================================================
 
-package "1. Edge Device" #EFF6FF {
+package "1. Edge Hardware Layer" #EFF6FF {
+    component "INMP441\nI2S Microphone" as Mic #DBEAFE
+    component "Pushbuttons & LED\n(START: 27, STOP: 33, LED: 4)" as Controls #DBEAFE
+    component "ESP32 Dev Module\nFirmware (16 kHz PCM)" as ESP #BFDBFE
 
-    component "INMP441\nMicrophone" as Mic #DBEAFE
-    component "ESP8266\nController" as ESP #BFDBFE
-
-    Mic --> ESP : Capture audio
+    Mic --> ESP : I2S Audio (26, 25, 32)
+    Controls --> ESP : GPIO Controls
 }
 
+' =========================================================
+' 2. INGESTION LAYER
+' =========================================================
 
-package "2. Backend & Audio Processing" #F5F3FF {
-
-    component "Flask REST API" as API #E0F2FE
-    component "PipelineRunner" as Pipeline #DDD6FE
-    component "Audio Buffer" as Buffer #EDE9FE
-    component "Feature Extractor" as Features #EDE9FE
-
-    API --> Pipeline
-    Pipeline --> Buffer
-    Pipeline --> Features
+package "2. Serial Ingestion Layer" #F5F3FF {
+    component "Python Serial Bridge\n(tools/esp32_serial_bridge.py)" as Bridge #EDE9FE
 }
 
+' =========================================================
+' 3. SESSION PROCESSING & AI ENGINE
+' =========================================================
 
-package "3. Machine Learning & Storage" #FAF5FF {
+package "3. Backend & AI Inference Engine" #FAF5FF {
+    component "Flask REST API\n(server.py)" as API #E0F2FE
+    component "ContinuousSessionEngine\n(Audio Validation & 3s Slicing)" as Engine #DDD6FE
+    component "HuBERT-D Inference Engine\n(Multi-Label Classifier)" as Model #C4B5FD
+    component "Event Aggregator &\nSession Summary" as Aggregator #DDD6FE
 
-    component "FluencyPredictor" as Predictor #C4B5FD
-    component "StutterTransferClassifier" as Model #DDD6FE
-    component "OnlineTrainer" as Trainer #FEF3C7
-
-    database "SQLite\nvoxflow_local.db" as DB
-
-    Features --> Predictor
-    Predictor --> Model : Prediction
-    Model --> DB : Save result
-
-    Trainer --> Model : Update model
+    API --> Engine : Process session
+    Engine --> Model : Sliding windows (3s/1s)
+    Engine --> Aggregator : Multi-label probabilities
 }
 
+' =========================================================
+' 4. STORAGE & VISUALIZATION
+' =========================================================
 
-package "4. Patient Interface" #F0FDF4 {
+package "4. Storage & Clinical Visualization" #F0FDF4 {
+    database "SQLite Storage\n(voxflow.db)" as DB #ECFDF5
+    component "Streamlit Dashboard\n(app/dashboard/dashboard_app.py)" as UI #DCFCE7
 
-    component "Streamlit\nDashboard" as Dashboard #DCFCE7
+    actor "User / Clinician" as User #DBEAFE
 
-    actor "Patient / User" as Patient #DBEAFE
-    actor "Speech Therapist" as Therapist #FEF3C7
-
-    Patient --> Dashboard : View history,\ntrends and reports
-    Dashboard --> Therapist : Clinical report
+    Engine --> DB : Persist windows & events
+    API --> DB : Session lifecycle state
+    DB --> UI : Stored session analytics
+    UI --> User : Timelines, metrics & trends
 }
 
+' =========================================================
+' CROSS-LAYER CONNECTIONS
+' =========================================================
 
-' Main communication path
-ESP --> API : Wi-Fi / HTTP
-DB --> Dashboard : History & trends
-
-' Retraining path
-API --> Trainer : Retraining request
-API --> Predictor : Reload updated model
-
+ESP --> Bridge : USB Serial (460800 baud)
+Bridge --> API : HTTP REST API\n(POST /api/v1/session/*)
 
 @enduml
