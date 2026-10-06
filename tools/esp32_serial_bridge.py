@@ -2,10 +2,14 @@
 """
 VoxFlow ESP32 serial bridge.
 
-Phase 1 flow:
+Supports both:
+  1. Serial-start mode (default, backward-compatible automated capture)
+  2. Physical-buttons mode (--physical-buttons, waits for ESP32 GPIO27 START)
+
+Phase 2 flow:
     ESP32 + INMP441
-        -> USB serial (COM8)
-        -> 10-second PCM capture
+        -> USB serial (e.g. COM8)
+        -> Dynamic PCM capture (3.0s - 60.0s via physical STOP / serial STOP / timeout)
         -> WAV file
         -> existing VoxFlow REST API
         -> existing HuBERT/session pipeline
@@ -35,7 +39,8 @@ DEFAULT_API = os.getenv("VOXFLOW_API_URL", "http://127.0.0.1:5000")
 DEFAULT_USER = os.getenv("VOXFLOW_USER_ID", "default_user")
 
 READLINE_TIMEOUT = 8.0
-PCM_TIMEOUT = 20.0
+CAPTURE_HEADER_TIMEOUT = 75.0
+PCM_TIMEOUT = 30.0
 ANALYZE_TIMEOUT = 1800.0
 
 
@@ -180,12 +185,16 @@ def run_bridge(
     user_id: str,
     output_dir: Path,
     skip_api: bool,
+    physical_buttons: bool = False,
 ) -> Path:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_path = output_dir / f"esp32_{timestamp}.wav"
 
+    mode_label = "Physical Buttons (GPIO27 START / GPIO33 STOP)" if physical_buttons else "Serial-Start"
+
     print("=" * 64)
     print("VoxFlow ESP32 Serial Bridge")
+    print(f"Mode     : {mode_label}")
     print(f"COM port : {port}")
     print(f"Baud     : {baud}")
     print(f"API      : {api_url}")
@@ -254,13 +263,17 @@ def run_bridge(
                 print("[2/7] API upload skipped.")
 
             # ---------------------------------------------------------
-            # Start ESP32 capture.
+            # ESP32 Capture initiation
             # ---------------------------------------------------------
-            print("[3/7] Sending START to ESP32...")
-            ser.write(b"START\n")
-            ser.flush()
+            if physical_buttons:
+                print("[3/7] Waiting for physical START button...")
+            else:
+                print("[3/7] Sending START to ESP32...")
+                ser.write(b"START\n")
+                ser.flush()
 
-            wait_for_exact_line(ser, "RECORDING", READLINE_TIMEOUT)
+            # Wait for RECORDING line with extended timeout (firmware records up to 60s)
+            wait_for_exact_line(ser, "RECORDING", CAPTURE_HEADER_TIMEOUT)
 
             bytes_line = wait_for_prefix(ser, "AUDIO_BYTES=", READLINE_TIMEOUT)
             sample_rate_line = wait_for_prefix(ser, "SAMPLE_RATE=", READLINE_TIMEOUT)
@@ -286,7 +299,8 @@ def run_bridge(
             duration = expected_bytes / sample_rate / 2.0
             if duration < 3.0 or duration > 60.0:
                 raise BridgeError(
-                    f"Unexpected recording duration from ESP32: {duration:.2f}s"
+                    f"Unexpected recording duration from ESP32: {duration:.2f}s "
+                    "(must be between 3.0s and 60.0s)"
                 )
 
             print(
@@ -381,7 +395,7 @@ def run_bridge(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Capture a 10-second VoxFlow ESP32 session."
+        description="Capture continuous speech sessions from VoxFlow ESP32 hardware."
     )
     parser.add_argument(
         "--port",
@@ -415,6 +429,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Only capture/save the WAV; do not call the VoxFlow API.",
     )
+    parser.add_argument(
+        "--physical-buttons",
+        action="store_true",
+        help="Wait for physical START button on ESP32 (GPIO27) instead of sending serial START.",
+    )
     return parser.parse_args()
 
 
@@ -429,6 +448,7 @@ def main() -> int:
             user_id=args.user_id,
             output_dir=args.output_dir,
             skip_api=args.skip_api,
+            physical_buttons=args.physical_buttons,
         )
     except BridgeError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
@@ -442,3 +462,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
