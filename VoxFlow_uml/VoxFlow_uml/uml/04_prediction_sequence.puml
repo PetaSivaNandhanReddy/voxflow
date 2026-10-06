@@ -40,35 +40,38 @@ participant "Streamlit Dashboard" as UI #DCFCE7
 
 == 1. Audio Validation & Window Slicing ==
 
-API -> Engine : process_continuous_session(audio_source, filename)
-Engine -> Engine : validate_and_load_session_audio(audio_source)
-Engine -> Engine : process_session_windows(audio, sr, engine)\n[3.0s window, 1.0s hop]
+API -> Engine : validate_and_load_session_audio(audio_path)
+Engine --> API : (audio, sr, duration_sec)
+
+API -> Engine : process_session_windows(session_id, audio, sr, duration_sec, engine)
 
 == 2. Sliding-Window HuBERT-D Multi-Label Inference ==
 
-loop For Each 3.0-Second Audio Window
+loop For Each 3.0-Second Audio Window (1.0s hop)
     Engine -> InfEngine : predict_window(waveform, sample_rate)
-    InfEngine -> HubertModel : forward(input_values, attention_mask)
+    InfEngine -> HubertModel : forward(input_values, ...)
     HubertModel --> InfEngine : logits
     InfEngine -> InfEngine : Apply Sigmoids & locked thresholds\n(Rep: 0.77, Pro: 0.79, Blk: 0.57)
-    InfEngine --> Engine : {Rep, Pro, Blk probs, active_labels, is_fluent, confidence}
+    InfEngine --> Engine : probabilities + threshold decisions
 end
+
+Engine --> API : windows
 
 == 3. Event Aggregation & Session Summary ==
 
-Engine -> Aggregator : aggregate_window_events(windows, thresholds)
-Aggregator -> Aggregator : Cluster consecutive active windows into discrete events
-Aggregator --> Engine : [aggregated_events]
+API -> Aggregator : aggregate_window_events(session_id, windows, min_support_windows=1, merge_gap_sec=1.5)
+Aggregator --> API : events
 
-Engine -> Summary : calculate_session_summary(windows, events, duration)
-Summary -> Summary : Compute Fluency Ratio & event counts
-Summary --> Engine : {session_summary_metrics}
+API -> Summary : calculate_session_summary(session_id, duration_sec, windows, events, model_name)
+Summary --> API : summary
 
 == 4. Persistence & Dashboard Visualization ==
 
-Engine -> DB : save_session_analysis(session_id, windows, events, summary)
-DB --> Engine : Persisted atomically
-Engine --> API : 200 OK {session_id, fluency_ratio, events}
+API -> DB : save_session_record(...)
+API -> DB : save_session_analysis(...)
+DB --> API : Persisted atomically
+
+API --> API : Return 200 OK response
 
 UI -> DB : get_latest_session() / get_session_details(session_id)
 DB --> UI : Stored session summary, windows, events

@@ -10,9 +10,9 @@ skinparam class {
     BorderColor #334155
     BorderThickness 1.5
     FontColor #0F172A
-    FontSize 11
-    AttributeFontSize 10
-    MethodFontSize 10
+    FontSize 10
+    AttributeFontSize 9
+    MethodFontSize 9
     ArrowColor #64748B
 }
 
@@ -23,7 +23,7 @@ skinparam package {
     BorderColor #CBD5E1
     BorderThickness 1.5
     FontColor #334155
-    FontSize 12
+    FontSize 11
     FontStyle bold
 }
 
@@ -43,11 +43,8 @@ package "API & Interface Layer" #EFF6FF {
     }
 
     class "dashboard_app" as UI <<presentation>> #DCFCE7 {
-        + render_analyze_session()
-        + render_current_session()
-        + render_session_history()
-        + render_fluency_trends()
-        + render_model_info()
+        Interactive Speech Fluency Dashboard
+        (Streamlit Multi-Page Application)
     }
 }
 
@@ -58,9 +55,9 @@ package "API & Interface Layer" #EFF6FF {
 package "Session Processing & AI Engine" #F5F3FF {
 
     class "session_engine" as Engine <<module>> #EDE9FE {
-        + validate_and_load_session_audio(audio_source)
-        + process_session_windows(audio, sr, engine)
-        + process_continuous_session(audio_source, filename)
+        + validate_and_load_session_audio(audio_path_or_bytes, sample_rate=16000)
+        + process_session_windows(session_id, audio, sr, duration_sec, engine=None)
+        + process_continuous_session(audio_source, session_id=None, filename="session.wav", engine=None)
     }
 
     class "VoxFlowInferenceEngine" as InfEngine #C4B5FD {
@@ -78,11 +75,11 @@ package "Session Processing & AI Engine" #F5F3FF {
     }
 
     class "event_aggregator" as Aggregator <<module>> #DDD6FE {
-        + aggregate_window_events(windows, thresholds) : list
+        + aggregate_window_events(session_id, windows, min_support_windows=1, merge_gap_sec=1.5)
     }
 
     class "session_summary" as Summary <<module>> #DDD6FE {
-        + calculate_session_summary(windows, events, duration) : dict
+        + calculate_session_summary(session_id, duration_sec, windows, events, model_name="VoxFlow")
     }
 }
 
@@ -94,13 +91,14 @@ package "Data Persistence Layer" #ECFDF5 {
 
     class "database" as DB <<module>> #DCFCE7 {
         - DB_PATH : Path
-        + init_db()
-        + save_session_record(session_id, ...)
-        + save_session_analysis(session_id, windows, events, summary)
-        + save_session(summary, windows, events)
-        + get_session_details(session_id) : dict
-        + get_latest_session() : dict
-        + get_all_sessions(limit) : list
+        + init_db(db_path=None)
+        + save_session_record(...)
+        + save_session_analysis(session_id, windows, events, summary, db_path=None)
+        + save_session(session_data, windows, events, db_path=None)
+        + get_session(session_id, db_path=None)
+        + get_session_details(session_id, db_path=None)
+        + get_latest_session(db_path=None)
+        + get_all_sessions(user_id=None, limit=50, db_path=None)
     }
 }
 
@@ -108,16 +106,14 @@ package "Data Persistence Layer" #ECFDF5 {
 ' RELATIONSHIPS & DATA FLOW
 ' =========================================================
 
-API --> Engine : triggers session processing
-Engine --> InfEngine : invokes sliding-window inference (3s window, 1s hop)
-InfEngine *-- HubertModel : contains PyTorch neural network
-Engine --> Aggregator : clusters contiguous disfluent windows
-Engine --> Summary : computes session-level fluency metrics
-Engine --> DB : persists session analysis
+API --> Engine : invokes validation & window processing
+Engine --> InfEngine : sliding-window inference (3.0s window, 1.0s hop)
+InfEngine *-- HubertModel : PyTorch backbone & head
+API --> Aggregator : clusters detected disfluent windows
+API --> Summary : computes session-level fluency metrics
+API --> DB : persists session metadata & analysis
 
-API --> DB : tracks session lifecycle
-
-UI --> DB : reads session results, history & trends
-UI --> InfEngine : reads model parameters & thresholds
+UI --> DB : queries session results, history & trends
+UI --> InfEngine : inspects model metadata & thresholds
 
 @enduml

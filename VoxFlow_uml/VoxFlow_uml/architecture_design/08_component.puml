@@ -71,11 +71,11 @@ package "3. Session Processing & AI Engine" #FAF5FF {
     component "Flask REST API\n(app/api/session_routes.py)" as API #E0F2FE
     component "Session Processing Engine\n(Audio Validation & 3s/1s Slicing)" as Engine #DDD6FE
     component "HuBERT-D Inference Engine\n(PyTorch Multi-Label Classifier)" as Model #C4B5FD
-    component "Event Aggregator &\nSession Summary" as Summary #DDD6FE
+    component "Event Aggregation &\nSession Summary" as Summary #DDD6FE
 
-    API --> Engine : Validate & process audio
-    Engine --> Model : 3.0s windows (1.0s hop)
-    Engine --> Summary : Window probabilities
+    API --> Engine : Validate & slice audio (3s/1s)
+    Engine --> Model : Window waveforms
+    API --> Summary : Cluster events & calculate metrics
 }
 
 ' =========================================================
@@ -88,9 +88,8 @@ package "4. Storage & Session Dashboard" #F0FDF4 {
 
     actor "User" as User #DBEAFE
 
-    Engine --> DB : Store windows & events
-    API --> DB : Store session metadata
-    DB --> UI : Read session analytics
+    API --> DB : Persist session lifecycle & analysis results
+    DB --> UI : Read stored session analytics
     UI --> User : Results, timelines & trends
 }
 
