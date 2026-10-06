@@ -1,11 +1,12 @@
 #include <Arduino.h>
 #include "driver/i2s.h"
+#include "esp_heap_caps.h"
 
 // =====================================================
 // VoxFlow ESP32 + INMP441
 // Phase 2: Hardware Control with Physical Buttons & Status LED
 // Supports physical START (GPIO27), STOP (GPIO33), Status LED (GPIO4),
-// and serial START/STOP/PING commands up to MAX_RECORD_SECONDS (60s).
+// serial START/STOP/PING commands, dynamic AUDIO_BYTES, and safe protocol framing.
 // =====================================================
 
 #define I2S_PORT I2S_NUM_0
@@ -24,9 +25,8 @@
 #define SAMPLE_RATE 16000
 #define BUFFER_SIZE 1024
 #define MAX_RECORD_SECONDS 60
-#define TOTAL_SAMPLES (SAMPLE_RATE * MAX_RECORD_SECONDS)
+#define MAX_TOTAL_SAMPLES (SAMPLE_RATE * MAX_RECORD_SECONDS)
 #define BYTES_PER_SAMPLE 2
-#define EXPECTED_AUDIO_BYTES (TOTAL_SAMPLES * BYTES_PER_SAMPLE)
 
 // Serial protocol
 #define SERIAL_BAUD 460800
@@ -40,6 +40,10 @@
 static bool i2sReady = false;
 static bool recording = false;
 
+// Audio capture buffer
+static int16_t* audioBuffer = nullptr;
+static uint32_t maxBufferSamples = 0;
+
 // =====================================================
 // FATAL ERROR
 // =====================================================
@@ -52,6 +56,34 @@ void fatalError(const char* code) {
   while (true) {
     delay(1000);
   }
+}
+
+// =====================================================
+// MEMORY BUFFER INITIALIZATION
+// =====================================================
+
+bool initAudioBuffer() {
+  // 1. Try allocating full 60-second buffer from PSRAM if available
+  if (psramInit()) {
+    audioBuffer = (int16_t*)ps_malloc(MAX_TOTAL_SAMPLES * sizeof(int16_t));
+    if (audioBuffer != nullptr) {
+      maxBufferSamples = MAX_TOTAL_SAMPLES;
+      return true;
+    }
+  }
+
+  // 2. Fallback to largest available internal heap block
+  size_t freeBlock = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
+  if (freeBlock > 24576) {
+    size_t allocBytes = freeBlock - 24576; // Preserve 24KB margin for system/UART buffers
+    audioBuffer = (int16_t*)malloc(allocBytes);
+    if (audioBuffer != nullptr) {
+      maxBufferSamples = (uint32_t)(allocBytes / sizeof(int16_t));
+      return true;
+    }
+  }
+
+  return false;
 }
 
 // =====================================================
@@ -123,65 +155,71 @@ void drainSerialInput() {
 // =====================================================
 // RECORD AUDIO
 // =====================================================
-// Serial protocol while recording:
-//   RECORDING\n
-//   AUDIO_BYTES=1920000\n
-//   SAMPLE_RATE=16000\n
-//   FORMAT=PCM_S16LE_MONO\n
-//   [binary PCM payload]
-//   DONE\n
-// IMPORTANT: no text is printed during binary PCM transmission.
+// Protocol flow:
+// 1. Capture PCM samples into buffer until STOP button, serial STOP, or 60s max.
+// 2. Compute exact captured audio bytes.
+// 3. Emit metadata header with dynamic AUDIO_BYTES:
+//      RECORDING\n
+//      AUDIO_BYTES=<exact_bytes>\n
+//      SAMPLE_RATE=16000\n
+//      FORMAT=PCM_S16LE_MONO\n
+// 4. Stream exactly that many binary PCM bytes.
+// 5. Send DONE\n.
 // =====================================================
 
 void recordAudio() {
-  if (!i2sReady || recording) {
+  if (!i2sReady || recording || audioBuffer == nullptr) {
     return;
   }
 
   recording = true;
 
-  // Turn Status LED ON during recording
+  // Status LED ON while recording is active
   digitalWrite(STATUS_LED_PIN, HIGH);
 
-  // Clear stale microphone samples before capture.
+  // Clear microphone DMA buffer before capture
   i2s_zero_dma_buffer(I2S_PORT);
   delay(50);
 
-  // Text protocol header. Everything after FORMAT is binary PCM
-  // until recording completes or STOP button is pressed.
-  Serial.println("RECORDING");
-  Serial.printf("AUDIO_BYTES=%lu\n", (unsigned long)EXPECTED_AUDIO_BYTES);
-  Serial.printf("SAMPLE_RATE=%u\n", SAMPLE_RATE);
-  Serial.println("FORMAT=PCM_S16LE_MONO");
-  Serial.flush();
-
-  int32_t samples[BUFFER_SIZE];
-  int16_t pcmBuffer[BUFFER_SIZE];
-
-  uint32_t totalSamplesSent = 0;
+  int32_t i2sSamples[BUFFER_SIZE];
+  uint32_t totalSamplesCaptured = 0;
   uint32_t lastSuccessfulReadMs = millis();
   uint32_t recordStartTimeMs = millis();
+  bool stopRequested = false;
 
-  while (totalSamplesSent < TOTAL_SAMPLES) {
-    // 1. Check physical STOP button during recording (active LOW with INPUT_PULLUP)
+  // Audio capture loop
+  while (totalSamplesCaptured < maxBufferSamples && !stopRequested) {
+    // 1. Physical STOP button check (active LOW with INPUT_PULLUP)
     if (digitalRead(STOP_BUTTON_PIN) == LOW) {
-      delay(20); // Quick debounce
+      delay(20);
       if (digitalRead(STOP_BUTTON_PIN) == LOW) {
-        break; // Stop collecting new samples immediately
+        stopRequested = true;
+        break;
       }
     }
 
-    // 2. Safety limit: check 60 seconds elapsed
+    // 2. Non-blocking serial STOP command check (avoids blocking I2S capture)
+    while (Serial.available() > 0) {
+      char c = (char)Serial.read();
+      if (c == 'S' || c == 's') {
+        stopRequested = true;
+        break;
+      }
+    }
+    if (stopRequested) {
+      break;
+    }
+
+    // 3. Safety limit: maximum 60 seconds reached
     if (millis() - recordStartTimeMs >= ((uint32_t)MAX_RECORD_SECONDS * 1000UL)) {
       break;
     }
 
     size_t bytesRead = 0;
-
     esp_err_t result = i2s_read(
       I2S_PORT,
-      samples,
-      sizeof(samples),
+      i2sSamples,
+      sizeof(i2sSamples),
       &bytesRead,
       pdMS_TO_TICKS(I2S_READ_TIMEOUT_MS)
     );
@@ -200,54 +238,61 @@ void recordAudio() {
     lastSuccessfulReadMs = millis();
 
     int samplesRead = bytesRead / sizeof(int32_t);
-    uint32_t remaining = TOTAL_SAMPLES - totalSamplesSent;
-
+    uint32_t remaining = maxBufferSamples - totalSamplesCaptured;
     if ((uint32_t)samplesRead > remaining) {
       samplesRead = (int)remaining;
     }
 
-    // Preserve the existing tested INMP441 conversion.
-    // The microphone's useful 24-bit signal is carried in the upper
-    // portion of the 32-bit I2S word for this setup.
+    // Convert 24-bit in 32-bit I2S word to 16-bit PCM with clamping
     for (int i = 0; i < samplesRead; ++i) {
-      int32_t sample = samples[i] >> 16;
-
+      int32_t sample = i2sSamples[i] >> 16;
       if (sample > 32767) {
         sample = 32767;
       } else if (sample < -32768) {
         sample = -32768;
       }
+      audioBuffer[totalSamplesCaptured++] = (int16_t)sample;
+    }
+  }
 
-      pcmBuffer[i] = (int16_t)sample;
+  // Calculate exact dynamic byte count of captured PCM audio
+  uint32_t actualAudioBytes = totalSamplesCaptured * sizeof(int16_t);
+
+  // Send exact protocol header
+  Serial.println("RECORDING");
+  Serial.printf("AUDIO_BYTES=%lu\n", (unsigned long)actualAudioBytes);
+  Serial.printf("SAMPLE_RATE=%u\n", SAMPLE_RATE);
+  Serial.println("FORMAT=PCM_S16LE_MONO");
+  Serial.flush();
+
+  // Transmit exact binary PCM payload
+  const uint8_t* pcmBytes = reinterpret_cast<const uint8_t*>(audioBuffer);
+  size_t totalBytesWritten = 0;
+
+  while (totalBytesWritten < actualAudioBytes) {
+    size_t chunk = actualAudioBytes - totalBytesWritten;
+    if (chunk > 1024) {
+      chunk = 1024;
     }
 
-    size_t bytesToSend = (size_t)samplesRead * sizeof(int16_t);
-
-    size_t written = Serial.write(
-      reinterpret_cast<const uint8_t*>(pcmBuffer),
-      bytesToSend
-    );
-
-    if (written != bytesToSend) {
+    size_t written = Serial.write(pcmBytes + totalBytesWritten, chunk);
+    if (written == 0) {
       digitalWrite(STATUS_LED_PIN, LOW);
       recording = false;
-      Serial.flush();
       Serial.println("ERROR:SERIAL_WRITE");
       Serial.flush();
       return;
     }
-
-    totalSamplesSent += (uint32_t)samplesRead;
+    totalBytesWritten += written;
   }
 
-  // Make sure the entire PCM payload has physically left the UART
-  // before sending the DONE marker.
+  // Flush UART and send DONE marker
   Serial.flush();
   delay(20);
   Serial.println("DONE");
   Serial.flush();
 
-  // Turn Status LED OFF when recording ends
+  // Turn Status LED OFF when session capture and transmission complete
   digitalWrite(STATUS_LED_PIN, LOW);
   recording = false;
 }
@@ -260,13 +305,17 @@ void setup() {
   Serial.begin(SERIAL_BAUD);
   Serial.setTimeout(SERIAL_COMMAND_TIMEOUT_MS);
 
-  // Configure physical buttons and LED
+  // Configure physical buttons and status LED
   pinMode(START_BUTTON_PIN, INPUT_PULLUP);
   pinMode(STOP_BUTTON_PIN, INPUT_PULLUP);
   pinMode(STATUS_LED_PIN, OUTPUT);
   digitalWrite(STATUS_LED_PIN, LOW);
 
-  delay(1500);
+  delay(1000);
+
+  if (!initAudioBuffer()) {
+    fatalError("ERROR:MEM_ALLOC");
+  }
 
   if (!setupI2S()) {
     fatalError("ERROR:I2S_INIT");
@@ -274,7 +323,7 @@ void setup() {
 
   i2sReady = true;
 
-  // Inform a human / simple serial monitor that the board is alive.
+  // Inform PC bridge that firmware is ready
   Serial.println("READY");
   Serial.flush();
 }
@@ -289,11 +338,11 @@ void loop() {
     return;
   }
 
-  // 1. Check physical START button (active LOW with INPUT_PULLUP)
+  // 1. Physical START button monitoring (active LOW with INPUT_PULLUP)
   if (digitalRead(START_BUTTON_PIN) == LOW) {
     delay(DEBOUNCE_DELAY_MS);
     if (digitalRead(START_BUTTON_PIN) == LOW) {
-      // Wait for release to avoid immediate re-triggering
+      // Wait for release before starting capture
       while (digitalRead(START_BUTTON_PIN) == LOW) {
         delay(10);
       }
@@ -303,21 +352,21 @@ void loop() {
     }
   }
 
-  // 2. Check serial commands while idle
+  // 2. Serial command monitoring while idle
   if (Serial.available() > 0) {
     String command = Serial.readStringUntil('\n');
     command.trim();
     command.toUpperCase();
 
     if (command == "PING") {
-      // Handshake used by the PC bridge so stale boot messages cannot
-      // cause synchronization errors.
       Serial.println("PONG");
       Serial.flush();
-
     } else if (command == "START") {
       drainSerialInput();
       recordAudio();
+    } else if (command == "STOP") {
+      // STOP while idle does nothing
+      drainSerialInput();
     }
   }
 
