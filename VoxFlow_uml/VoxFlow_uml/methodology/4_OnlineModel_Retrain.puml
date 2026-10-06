@@ -1,0 +1,54 @@
+@startuml
+
+title <size:20><b>VoxFlow - Online Model Retraining Flowchart</b></size>\n<size:12>Feedback-Based Model Update Workflow</size>
+
+skinparam backgroundColor #F8FAFC
+skinparam shadowing false
+skinparam dpi 170
+
+skinparam activity {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.5
+    FontColor #0F172A
+    FontSize 10
+
+    DiamondBackgroundColor #F5F3FF
+    DiamondBorderColor #7C3AED
+    DiamondFontColor #0F172A
+
+    StartColor #86EFAC
+    StopColor #FCA5A5
+}
+
+skinparam ArrowColor #64748B
+skinparam ArrowThickness 1.3
+
+
+start
+
+#DBEAFE:Receive corrected\nfeedback sample;
+
+#FEF3C7:Add feedback sample\nto training queue;
+
+#E0F2FE:Receive retraining\nrequest;
+
+#FEF3C7:Start online\ntraining step;
+
+#C4B5FD:Load current\nmodel weights;
+
+#C4B5FD:Train model using\nfeedback samples;
+
+#C4B5FD:Generate updated\nmodel weights;
+
+#DCFCE7:Save updated\nmodel weights;
+
+#EDE9FE:Reload updated weights\ninto FluencyPredictor;
+
+#DCFCE7:Confirm updated\nmodel is ready;
+
+#F8FAFC:Use updated model\nfor future predictions;
+
+stop
+
+@enduml

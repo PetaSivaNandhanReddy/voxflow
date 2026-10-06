@@ -1,0 +1,62 @@
+@startuml
+
+title <size:20><b>VoxFlow - Speech Fluency Prediction Flowchart</b></size>\n<size:12>Audio Processing and AI Prediction Workflow</size>
+
+skinparam backgroundColor #F8FAFC
+skinparam shadowing false
+skinparam dpi 170
+
+skinparam activity {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.5
+    FontColor #0F172A
+    FontSize 10
+
+    DiamondBackgroundColor #F5F3FF
+    DiamondBorderColor #7C3AED
+    DiamondFontColor #0F172A
+
+    StartColor #86EFAC
+    StopColor #FCA5A5
+}
+
+skinparam ArrowColor #64748B
+skinparam ArrowThickness 1.3
+
+
+start
+
+#E0F2FE:Receive audio chunk\nfrom ESP8266;
+
+#DDD6FE:Add chunk to audio buffer;
+
+if (Audio window ready?) then (Yes)
+
+    #EDE9FE:Check speech activity;
+
+    if (Speech detected?) then (Yes)
+
+        #EDE9FE:Extract audio features;
+
+        #C4B5FD:Run fluency prediction\nmodel;
+
+        #C4B5FD:Generate prediction\nand confidence;
+
+        #DCFCE7:Return prediction result\nto Flask API;
+
+    else (No)
+
+        #F8FAFC:Return listening /\nidle status;
+
+    endif
+
+else (No)
+
+    #F8FAFC:Continue buffering;
+
+endif
+
+stop
+
+@enduml

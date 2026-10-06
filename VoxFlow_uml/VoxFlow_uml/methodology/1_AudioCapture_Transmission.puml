@@ -1,0 +1,71 @@
+@startuml
+
+title <size:20><b>VoxFlow - Audio Capture & Transmission Flowchart</b></size>\n<size:12>ESP8266 and INMP441 Workflow</size>
+
+skinparam backgroundColor #F8FAFC
+skinparam shadowing false
+skinparam dpi 170
+
+skinparam activity {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.5
+    FontColor #0F172A
+    FontSize 10
+
+    DiamondBackgroundColor #F5F3FF
+    DiamondBorderColor #7C3AED
+    DiamondFontColor #0F172A
+
+    StartColor #86EFAC
+    StopColor #FCA5A5
+}
+
+skinparam ArrowColor #64748B
+skinparam ArrowThickness 1.3
+
+
+start
+
+#DBEAFE:Initialize ESP8266;
+#DBEAFE:Initialize INMP441 microphone;
+
+:Connect to Wi-Fi;
+
+if (Wi-Fi connected?) then (Yes)
+
+    :Wait for patient speech;
+
+    :Capture audio samples;
+
+    :Build audio chunk;
+
+    if (Chunk ready?) then (Yes)
+
+        :Send audio chunk\nvia HTTP to Flask API;
+
+        if (Transmission successful?) then (Yes)
+
+            :Continue monitoring;
+
+        else (No)
+
+            :Retry transmission;
+
+        endif
+
+    else (No)
+
+        :Continue capturing audio;
+
+    endif
+
+else (No)
+
+    :Retry Wi-Fi connection;
+
+endif
+
+stop
+
+@enduml

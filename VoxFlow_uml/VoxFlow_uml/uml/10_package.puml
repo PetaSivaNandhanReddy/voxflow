@@ -1,0 +1,83 @@
+@startuml
+
+title <size:20><b>VoxFlow - Package Diagram</b></size>\n<size:12>Logical Organization of Software Modules</size>
+
+left to right direction
+
+skinparam backgroundColor #F8FAFC
+skinparam shadowing false
+skinparam dpi 170
+
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.5
+    FontColor #0F172A
+    FontSize 11
+    FontStyle bold
+}
+
+skinparam ArrowColor #64748B
+skinparam ArrowThickness 1.4
+
+
+package "API Layer" #DBEAFE {
+
+    [Flask REST API]
+}
+
+
+package "Audio Processing" #EDE9FE {
+
+    [PipelineRunner]
+    [Audio Buffer]
+    [Feature Extractor]
+}
+
+
+package "Machine Learning" #DDD6FE {
+
+    [Fluency Predictor]
+    [Stutter Classifier]
+}
+
+
+package "Training" #FEF3C7 {
+
+    [Online Trainer]
+}
+
+
+package "Data Layer" #DCFCE7 {
+
+    [Database Manager]
+    database "SQLite Database" as SQLite
+}
+
+
+package "Dashboard" #BBF7D0 {
+
+    [Streamlit Dashboard]
+}
+
+
+' Package dependencies
+
+"API Layer" --> "Audio Processing" : process audio
+
+"Audio Processing" --> "Machine Learning" : feature data
+
+"Machine Learning" --> "Data Layer" : prediction
+
+"API Layer" --> "Data Layer" : store / retrieve
+
+"Dashboard" --> "Data Layer" : history & trends
+
+"API Layer" --> "Training" : retraining request
+
+"Training" --> "Machine Learning" : update model
+
+"Data Layer" --> SQLite : persist data
+
+
+@enduml

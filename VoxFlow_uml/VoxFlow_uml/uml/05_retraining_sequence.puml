@@ -1,0 +1,72 @@
+@startuml
+
+title <size:20><b>VoxFlow - Model Retraining Sequence</b></size>\n<size:12>Online Learning and Model Update Flow</size>
+
+hide footbox
+
+skinparam backgroundColor #F8FAFC
+skinparam shadowing false
+skinparam dpi 160
+
+skinparam sequence {
+    ArrowColor #475569
+    LifeLineBorderColor #94A3B8
+    LifeLineBackgroundColor #F8FAFC
+
+    ParticipantBorderColor #334155
+    ParticipantBackgroundColor #FFFFFF
+    ParticipantFontColor #0F172A
+    ParticipantFontStyle bold
+
+    ActorBorderColor #334155
+    ActorBackgroundColor #DBEAFE
+    ActorFontColor #0F172A
+    ActorFontStyle bold
+}
+
+skinparam participant {
+    FontSize 11
+}
+
+skinparam sequenceMessageAlign center
+
+
+participant "Streamlit\nDashboard" as UI #EDE9FE
+participant "Flask REST API" as API #E0F2FE
+participant "OnlineTrainer" as Trainer #FEF3C7
+participant "StutterTransferClassifier" as Model #DDD6FE
+database "Model Weights\nstutter_model.pt" as Weights #ECFDF5
+participant "FluencyPredictor" as Predictor #C4B5FD
+
+
+== Feedback Collection ==
+
+UI -> API : Submit feedback sample
+API -> Trainer : addFeedbackSample(...)
+Trainer --> API : Feedback queued
+
+
+== Model Retraining ==
+
+UI -> API : Request model retraining
+API -> Trainer : trainOnlineStep()
+
+Trainer -> Model : Train on feedback samples
+Model --> Trainer : Updated model
+
+Trainer -> Weights : Save updated weights
+Weights --> Trainer : Saved successfully
+
+Trainer --> API : Training complete
+
+
+== Activate Updated Model ==
+
+API -> Predictor : reloadWeights()
+Predictor -> Weights : Load updated weights
+Weights --> Predictor : New model weights
+Predictor --> API : Model ready
+
+API --> UI : Retraining complete
+
+@enduml

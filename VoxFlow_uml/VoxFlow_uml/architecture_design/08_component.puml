@@ -1,0 +1,105 @@
+@startuml
+
+title <size:20><b>VoxFlow - Component Architecture Diagram</b></size>\n<size:12>AI-Assisted Speech Fluency Monitoring System</size>
+
+skinparam backgroundColor #F8FAFC
+skinparam shadowing false
+skinparam dpi 170
+
+skinparam component {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.5
+    FontColor #0F172A
+    FontSize 10
+    FontStyle bold
+}
+
+skinparam package {
+    BackgroundColor #F8FAFC
+    BorderColor #CBD5E1
+    BorderThickness 1.5
+    FontColor #334155
+    FontSize 11
+    FontStyle bold
+}
+
+skinparam database {
+    BackgroundColor #ECFDF5
+    BorderColor #166534
+    BorderThickness 1.5
+    FontColor #0F172A
+    FontSize 10
+}
+
+skinparam actor {
+    BackgroundColor #DBEAFE
+    BorderColor #334155
+    FontColor #0F172A
+    FontStyle bold
+}
+
+skinparam ArrowColor #64748B
+skinparam ArrowThickness 1.4
+
+
+package "1. Edge Device" #EFF6FF {
+
+    component "INMP441\nMicrophone" as Mic #DBEAFE
+    component "ESP8266\nController" as ESP #BFDBFE
+
+    Mic --> ESP : Capture audio
+}
+
+
+package "2. Backend & Audio Processing" #F5F3FF {
+
+    component "Flask REST API" as API #E0F2FE
+    component "PipelineRunner" as Pipeline #DDD6FE
+    component "Audio Buffer" as Buffer #EDE9FE
+    component "Feature Extractor" as Features #EDE9FE
+
+    API --> Pipeline
+    Pipeline --> Buffer
+    Pipeline --> Features
+}
+
+
+package "3. Machine Learning & Storage" #FAF5FF {
+
+    component "FluencyPredictor" as Predictor #C4B5FD
+    component "StutterTransferClassifier" as Model #DDD6FE
+    component "OnlineTrainer" as Trainer #FEF3C7
+
+    database "SQLite\nvoxflow_local.db" as DB
+
+    Features --> Predictor
+    Predictor --> Model : Prediction
+    Model --> DB : Save result
+
+    Trainer --> Model : Update model
+}
+
+
+package "4. Patient Interface" #F0FDF4 {
+
+    component "Streamlit\nDashboard" as Dashboard #DCFCE7
+
+    actor "Patient / User" as Patient #DBEAFE
+    actor "Speech Therapist" as Therapist #FEF3C7
+
+    Patient --> Dashboard : View history,\ntrends and reports
+    Dashboard --> Therapist : Clinical report
+}
+
+
+' Main communication path
+ESP --> API : Wi-Fi / HTTP
+DB --> Dashboard : History & trends
+
+' Retraining path
+API --> Trainer : Retraining request
+API --> Predictor : Reload updated model
+
+
+@enduml

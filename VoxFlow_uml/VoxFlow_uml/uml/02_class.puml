@@ -1,0 +1,111 @@
+@startuml
+title <size:20><b>VoxFlow - Class Diagram</b></size>\n<size:12>Core Software Components</size>
+
+left to right direction
+
+skinparam backgroundColor #F8FAFC
+skinparam shadowing false
+skinparam dpi 170
+
+skinparam class {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.5
+    FontColor #0F172A
+    FontSize 11
+    AttributeFontSize 10
+    MethodFontSize 10
+    ArrowColor #64748B
+}
+
+skinparam ArrowThickness 1.5
+
+skinparam package {
+    BackgroundColor #F8FAFC
+    BorderColor #CBD5E1
+    BorderThickness 1.5
+    FontColor #334155
+    FontSize 12
+    FontStyle bold
+}
+
+' =========================================================
+' API
+' =========================================================
+
+class "VoxFlowAPI" as API <<controller>> #DBEAFE {
+    + uploadAudio()
+    + getPredictions()
+    + submitFeedback()
+    + retrainModel()
+}
+
+' =========================================================
+' AUDIO PROCESSING
+' =========================================================
+
+package "Audio Processing" #EEF2FF {
+
+    class "PipelineRunner" as Pipeline #C4B5FD {
+        + processChunk()
+    }
+
+    class "AudioChunkAccumulator" as Buffer #DDD6FE {
+        + addChunk()
+        + resetSession()
+    }
+
+    class "FeatureExtractor" as Features #EDE9FE {
+        + extractFeatures()
+    }
+}
+
+' =========================================================
+' MACHINE LEARNING
+' =========================================================
+
+package "Machine Learning" #F5F3FF {
+
+    class "FluencyPredictor" as Predictor #C4B5FD {
+        + predict()
+        + reloadWeights()
+    }
+
+    class "StutterTransferClassifier" as Model #DDD6FE {
+        + forward()
+    }
+
+    class "OnlineTrainer" as Trainer #FEF3C7 {
+        + addFeedbackSample()
+        + trainOnline()
+    }
+}
+
+' =========================================================
+' DATA
+' =========================================================
+
+class "DatabaseManager" as DB <<repository>> #DCFCE7 {
+    + savePrediction()
+    + fetchPredictions()
+}
+
+' =========================================================
+' RELATIONSHIPS
+' =========================================================
+
+API --> Pipeline : process audio
+
+Pipeline --> Buffer : buffer chunks
+Pipeline --> Features : extract features
+Pipeline --> Predictor : predict
+
+Predictor --> Model : uses
+
+API --> DB : store / retrieve data
+
+API --> Trainer : retrain model
+
+Trainer --> Model : update weights
+
+@enduml

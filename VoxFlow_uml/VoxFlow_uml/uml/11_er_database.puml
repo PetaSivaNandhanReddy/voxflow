@@ -1,0 +1,75 @@
+@startuml
+
+title <size:20><b>VoxFlow - ER Database Diagram</b></size>\n<size:12>SQLite Database Schema</size>
+
+left to right direction
+
+skinparam backgroundColor #F8FAFC
+skinparam shadowing false
+skinparam dpi 170
+
+skinparam entity {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.5
+    FontColor #0F172A
+    FontSize 10
+}
+
+skinparam ArrowColor #64748B
+skinparam ArrowThickness 1.4
+
+
+entity "users" as Users #DBEAFE {
+    * user_id : INTEGER <<PK>>
+    --
+    full_name : TEXT
+    age : INTEGER
+    therapist_name : TEXT
+    baseline_embedding : BLOB
+    created_at : TIMESTAMP
+}
+
+
+entity "sessions" as Sessions #EDE9FE {
+    * session_id : INTEGER <<PK>>
+    --
+    user_id : INTEGER <<FK>>
+    session_name : TEXT
+    start_time : TIMESTAMP
+    end_time : TIMESTAMP
+    total_audio_length : REAL
+}
+
+
+entity "predictions" as Predictions #DDD6FE {
+    * pred_id : INTEGER <<PK>>
+    --
+    session_id : INTEGER <<FK>>
+    timestamp : TIMESTAMP
+    fluency_score : REAL
+    stutter_type : TEXT
+    confidence : REAL
+    audio_file_path : TEXT
+    synced_flag : INTEGER
+}
+
+
+entity "reports" as Reports #DCFCE7 {
+    * report_id : INTEGER <<PK>>
+    --
+    session_id : INTEGER <<FK>>
+    user_id : INTEGER <<FK>>
+    generated_at : TIMESTAMP
+    summary_notes : TEXT
+    pdf_file_path : TEXT
+}
+
+
+Users ||--o{ Sessions : has
+Sessions ||--o{ Predictions : contains
+Users ||--o{ Reports : generates
+Sessions ||--o{ Reports : produces
+
+
+@enduml

@@ -1,0 +1,126 @@
+@startuml
+title <size:20><b>VoxFlow - Use Case Diagram</b></size>\n<size:12>AI-Assisted Speech Fluency Monitoring System</size>
+
+left to right direction
+
+' =========================================================
+' PAGE / LAYOUT
+' =========================================================
+
+skinparam backgroundColor #F8FAFC
+skinparam shadowing false
+skinparam dpi 160
+
+skinparam nodesep 35
+skinparam ranksep 35
+
+skinparam actorStyle awesome
+
+skinparam rectangle {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 2
+    RoundCorner 15
+}
+
+skinparam usecase {
+    BackgroundColor #FFFFFF
+    BorderColor #475569
+    BorderThickness 1.5
+    FontColor #1E293B
+    FontSize 11
+    FontStyle bold
+}
+
+skinparam ArrowColor #64748B
+skinparam ArrowThickness 1.3
+
+skinparam actor {
+    FontColor #0F172A
+    FontSize 12
+    FontStyle bold
+}
+
+' =========================================================
+' ACTORS
+' =========================================================
+
+actor "ESP8266\nHardware Device" as ESP #E0F2FE
+actor "Patient / User" as Patient #DBEAFE
+
+' =========================================================
+' VOXFLOW SYSTEM
+' =========================================================
+
+rectangle "VoxFlow Speech Fluency\nMonitoring System" {
+
+    ' -----------------------------------------------------
+    ' AUDIO PROCESSING
+    ' -----------------------------------------------------
+
+    usecase "Capture & Send\nAudio" as UC_Send #DBEAFE
+
+    usecase "Analyze Speech" as UC_Analyze #EDE9FE
+
+    usecase "Buffer Audio" as UC_Buffer #F5F3FF
+    usecase "Check Speech\nActivity" as UC_VAD #F5F3FF
+    usecase "Extract Audio\nFeatures" as UC_Feature #F5F3FF
+    usecase "Classify\nDisfluency" as UC_Classify #F5F3FF
+    usecase "Store\nPrediction" as UC_Store #F5F3FF
+
+    ' -----------------------------------------------------
+    ' PATIENT DASHBOARD
+    ' -----------------------------------------------------
+
+    usecase "View Prediction\nHistory" as UC_History #DCFCE7
+    usecase "View Fluency\nTrends" as UC_Trends #DCFCE7
+    usecase "Generate Clinical\nReport" as UC_Report #BBF7D0
+}
+
+' =========================================================
+' HARDWARE INTERACTION
+' =========================================================
+
+ESP --> UC_Send : audio data
+
+' =========================================================
+' INTERNAL AUDIO ANALYSIS
+' =========================================================
+
+UC_Send --> UC_Analyze : <<include>>
+
+UC_Analyze --> UC_Buffer : <<include>>
+UC_Analyze --> UC_VAD : <<include>>
+UC_Analyze --> UC_Feature : <<include>>
+UC_Analyze --> UC_Classify : <<include>>
+UC_Analyze --> UC_Store : <<include>>
+
+' =========================================================
+' PATIENT / USER DASHBOARD INTERACTION
+' =========================================================
+
+Patient --> UC_History
+Patient --> UC_Trends
+Patient --> UC_Report
+
+' =========================================================
+' REPORT INFORMATION
+' =========================================================
+
+note right of UC_Report
+  Report can be shared with
+  a speech therapist during
+  a consultation.
+end note
+
+' =========================================================
+' HARDWARE INFORMATION
+' =========================================================
+
+note left of ESP
+  INMP441 microphone
+  Red / Green LEDs
+  Wi-Fi communication
+end note
+
+@enduml

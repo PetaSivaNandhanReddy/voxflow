@@ -1,0 +1,60 @@
+@startuml
+
+title <size:20><b>VoxFlow - Prediction Storage & Dashboard Flowchart</b></size>\n<size:12>Result Storage, Analytics and Clinical Report Workflow</size>
+
+skinparam backgroundColor #F8FAFC
+skinparam shadowing false
+skinparam dpi 170
+
+skinparam activity {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.5
+    FontColor #0F172A
+    FontSize 10
+
+    DiamondBackgroundColor #F5F3FF
+    DiamondBorderColor #7C3AED
+    DiamondFontColor #0F172A
+
+    StartColor #86EFAC
+    StopColor #FCA5A5
+}
+
+skinparam ArrowColor #64748B
+skinparam ArrowThickness 1.3
+
+
+start
+
+#DCFCE7:Receive prediction\nand confidence;
+
+#DCFCE7:Identify patient\nand active session;
+
+#DCFCE7:Store prediction\nin SQLite;
+
+#EDE9FE:Open patient dashboard;
+
+#EDE9FE:Retrieve prediction\nhistory;
+
+#EDE9FE:Calculate and display\nfluency trends;
+
+#EDE9FE:Display latest result\nand history;
+
+if (Clinical report requested?) then (Yes)
+
+    #BBF7D0:Retrieve selected\nsession records;
+
+    #BBF7D0:Generate clinical\nreport / export;
+
+    #FEF3C7:Share report with\nspeech therapist;
+
+else (No)
+
+    #F8FAFC:Continue monitoring;
+
+endif
+
+stop
+
+@enduml

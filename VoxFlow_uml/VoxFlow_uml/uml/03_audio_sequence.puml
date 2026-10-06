@@ -1,0 +1,81 @@
+@startuml
+
+title <size:20><b>VoxFlow - Audio Processing Sequence</b></size>\n<size:12>Real-Time Speech Analysis</size>
+
+hide footbox
+
+skinparam backgroundColor #F8FAFC
+skinparam shadowing false
+skinparam dpi 160
+
+skinparam sequence {
+    ArrowColor #475569
+    LifeLineBorderColor #94A3B8
+    LifeLineBackgroundColor #F8FAFC
+
+    ParticipantBorderColor #334155
+    ParticipantBackgroundColor #FFFFFF
+    ParticipantFontColor #0F172A
+    ParticipantFontStyle bold
+
+    ActorBorderColor #334155
+    ActorBackgroundColor #DBEAFE
+    ActorFontColor #0F172A
+    ActorFontStyle bold
+}
+
+skinparam participant {
+    FontSize 11
+}
+
+skinparam sequenceMessageAlign center
+
+actor "ESP8266" as ESP #DBEAFE
+
+participant "Flask REST API" as API #E0F2FE
+participant "PipelineRunner" as Pipeline #EDE9FE
+participant "Audio Buffer" as Buffer #DDD6FE
+participant "Feature Extractor" as Features #EDE9FE
+participant "Fluency Predictor" as Predictor #C4B5FD
+
+
+ESP -> API : Send audio chunk
+
+API -> Pipeline : processChunk()
+
+Pipeline -> Buffer : addChunk()
+
+
+alt Buffer not ready
+
+    Buffer --> Pipeline : Audio accumulating
+    Pipeline --> API : Accumulating status
+    API --> ESP : "Buffering..."
+
+else Buffer ready
+
+    Buffer --> Pipeline : Audio window ready
+
+    Pipeline -> Pipeline : Check speech activity\n(RMS energy)
+
+    alt No speech detected
+
+        Pipeline --> API : Idle status
+        API --> ESP : "Listening..."
+
+    else Speech detected
+
+        Pipeline -> Features : Extract features
+        Features --> Pipeline : Log-Mel features
+
+        Pipeline -> Predictor : Predict
+        Predictor --> Pipeline : Class + confidence
+
+        Pipeline --> API : Prediction result
+        API --> ESP : Fluency result
+
+    end
+
+end
+
+@enduml

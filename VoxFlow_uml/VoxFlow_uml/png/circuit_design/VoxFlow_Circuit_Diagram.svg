@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900">
+<rect width="1400" height="900" fill="#f8fafc"/>
+<rect x="25" y="25" width="1350" height="850" rx="18" fill="white" stroke="#cbd5e1" stroke-width="2"/>
+<rect x="25" y="25" width="1350" height="85" rx="18" fill="#1e3a5f"/>
+<text x="700" y="63" text-anchor="middle" font-family="Arial" font-size="30" font-weight="700" fill="white">VoxFlow — Circuit Diagram (Demo)</text>
+<text x="700" y="91" text-anchor="middle" font-family="Arial" font-size="16" fill="#dbeafe">ESP8266 NodeMCU + INMP441 I²S Microphone + LED Indicators</text>
+
+<style>
+.t{font:700 18px Arial;fill:#0f172a}.s{font:14px Arial;fill:#334155}.p{font:700 13px Arial;fill:#0f172a}.w{fill:none;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+</style>
+
+<!-- ESP8266 -->
+<rect x="75" y="155" width="350" height="590" rx="22" fill="#111827" stroke="#334155" stroke-width="3"/>
+<text x="250" y="195" text-anchor="middle" font-family="Arial" font-size="22" font-weight="700" fill="white">ESP8266 NodeMCU</text>
+<text x="250" y="220" text-anchor="middle" font-family="Arial" font-size="14" fill="#cbd5e1">Development Board</text>
+<rect x="150" y="260" width="200" height="100" rx="12" fill="#374151" stroke="#94a3b8" stroke-width="2"/>
+<text x="250" y="320" text-anchor="middle" font-family="Arial" font-size="22" font-weight="700" fill="white">ESP-12E</text>
+
+<g font-family="Arial">
+<rect x="110" y="410" width="155" height="40" rx="6" fill="#1e3a5f"/><text x="125" y="436" class="p" fill="white">3V3</text>
+<rect x="110" y="460" width="155" height="40" rx="6" fill="#374151"/><text x="125" y="486" class="p" fill="white">GND</text>
+<rect x="110" y="510" width="155" height="40" rx="6" fill="#374151"/><text x="125" y="536" class="p" fill="white">D5 / GPIO14</text>
+<rect x="110" y="560" width="155" height="40" rx="6" fill="#374151"/><text x="125" y="586" class="p" fill="white">D6 / GPIO12</text>
+<rect x="110" y="610" width="155" height="40" rx="6" fill="#374151"/><text x="125" y="636" class="p" fill="white">D7 / GPIO13</text>
+<rect x="285" y="410" width="110" height="40" rx="6" fill="#374151"/><text x="297" y="436" class="p" fill="white">D1 / GPIO5</text>
+<rect x="285" y="460" width="110" height="40" rx="6" fill="#374151"/><text x="297" y="486" class="p" fill="white">D2 / GPIO4</text>
+</g>
+
+<!-- INMP441 -->
+<rect x="520" y="155" width="350" height="430" rx="22" fill="#1769aa" stroke="#334155" stroke-width="3"/>
+<circle cx="695" cy="300" r="70" fill="#111827" stroke="#cbd5e1" stroke-width="8"/>
+<circle cx="695" cy="300" r="48" fill="#1f2937" stroke="#64748b" stroke-width="3"/>
+<text x="695" y="410" text-anchor="middle" font-family="Arial" font-size="26" font-weight="700" fill="white">INMP441</text>
+<text x="695" y="438" text-anchor="middle" font-family="Arial" font-size="16" fill="#dbeafe">I²S Digital Microphone</text>
+<g font-family="Arial">
+<text x="570" y="515" class="p" fill="white">VDD</text><text x="630" y="515" class="p" fill="white">GND</text>
+<text x="690" y="515" class="p" fill="white">SCK</text><text x="750" y="515" class="p" fill="white">WS</text>
+<text x="810" y="515" class="p" fill="white">SD</text>
+</g>
+
+<!-- LEDs -->
+<rect x="940" y="155" width="190" height="430" rx="18" fill="#fff1f2" stroke="#fda4af" stroke-width="2"/>
+<text x="1035" y="195" text-anchor="middle" class="t">RED LED</text><text x="1035" y="220" text-anchor="middle" class="s">Transmission</text>
+<circle cx="1035" cy="290" r="32" fill="#ef4444" stroke="#991b1b" stroke-width="3"/>
+<rect x="1025" y="322" width="20" height="70" fill="#cbd5e1"/>
+<rect x="1015" y="392" width="40" height="85" rx="4" fill="#d6b27c" stroke="#8b5e34" stroke-width="2"/>
+<text x="1035" y="510" text-anchor="middle" class="s">220 Ω</text>
+<rect x="1160" y="155" width="190" height="430" rx="18" fill="#f0fdf4" stroke="#86efac" stroke-width="2"/>
+<text x="1255" y="195" text-anchor="middle" class="t">GREEN LED</text><text x="1255" y="220" text-anchor="middle" class="s">Processing</text>
+<circle cx="1255" cy="290" r="32" fill="#22c55e" stroke="#166534" stroke-width="3"/>
+<rect x="1245" y="322" width="20" height="70" fill="#cbd5e1"/>
+<rect x="1235" y="392" width="40" height="85" rx="4" fill="#d6b27c" stroke="#8b5e34" stroke-width="2"/>
+<text x="1255" y="510" text-anchor="middle" class="s">220 Ω</text>
+
+<!-- wires -->
+<path d="M265 430 H470 V540 H570 V515" class="w" stroke="#dc2626"/><text x="455" y="525" class="s" fill="#b91c1c">3.3 V</text>
+<path d="M265 480 H490 V555 H630 V515" class="w" stroke="#111827"/>
+<path d="M265 530 H455 V610 H690 V515" class="w" stroke="#16a34a"/><text x="470" y="595" class="s" fill="#15803d">SCK</text>
+<path d="M265 580 H440 V650 H750 V515" class="w" stroke="#eab308"/><text x="455" y="635" class="s" fill="#a16207">WS</text>
+<path d="M265 630 H425 V690 H810 V515" class="w" stroke="#2563eb"/><text x="440" y="675" class="s" fill="#1d4ed8">SD</text>
+<path d="M395 430 H900 V545 H1015 V435" class="w" stroke="#f97316"/><text x="815" y="530" class="s" fill="#c2410c">D1 / GPIO5</text>
+<path d="M395 480 H875 V570 H1235 V435" class="w" stroke="#06b6d4"/><text x="1080" y="555" class="s" fill="#0e7490">D2 / GPIO4</text>
+
+<!-- notes -->
+<rect x="75" y="780" width="1275" height="70" rx="12" fill="#f8fafc" stroke="#cbd5e1"/>
+<text x="95" y="807" class="t" font-size="16">Demo connection notes</text>
+<text x="95" y="832" class="s">INMP441: VDD→3.3V, GND→GND, SCK→D5/GPIO14, WS→D6/GPIO12, SD→D7/GPIO13, L/R→GND.</text>
+<text x="790" y="807" class="s">Red LED: D1/GPIO5 → 220Ω → LED → GND.</text>
+<text x="790" y="832" class="s">Green LED: D2/GPIO4 → 220Ω → LED → GND.</text>
+
+<text x="700" y="868" text-anchor="middle" font-family="Arial" font-size="12" fill="#64748b">DEMO CONFIGURATION — VERIFY GPIO ASSIGNMENTS AGAINST THE FINAL PHYSICAL PROTOTYPE</text>
+</svg>

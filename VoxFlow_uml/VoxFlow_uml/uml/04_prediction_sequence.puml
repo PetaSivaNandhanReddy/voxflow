@@ -1,0 +1,68 @@
+@startuml
+
+title <size:20><b>VoxFlow - Prediction & Patient Dashboard Sequence</b></size>\n<size:12>Result Storage, Analytics and Clinical Report Flow</size>
+
+hide footbox
+
+skinparam backgroundColor #F8FAFC
+skinparam shadowing false
+skinparam dpi 160
+
+skinparam sequence {
+    ArrowColor #475569
+    LifeLineBorderColor #94A3B8
+    LifeLineBackgroundColor #F8FAFC
+
+    ParticipantBorderColor #334155
+    ParticipantBackgroundColor #FFFFFF
+    ParticipantFontColor #0F172A
+    ParticipantFontStyle bold
+
+    ActorBorderColor #334155
+    ActorBackgroundColor #DBEAFE
+    ActorFontColor #0F172A
+    ActorFontStyle bold
+}
+
+skinparam participant {
+    FontSize 11
+}
+
+skinparam sequenceMessageAlign center
+
+
+participant "Flask REST API" as API #E0F2FE
+participant "DatabaseManager" as DBManager #DCFCE7
+database "SQLite\nvoxflow_local.db" as DB #ECFDF5
+participant "Streamlit\nDashboard" as UI #EDE9FE
+actor "Patient / User" as Patient #DBEAFE
+actor "Speech Therapist" as Therapist #FEF3C7
+
+
+== Prediction Storage ==
+
+API -> DBManager : savePrediction(...)
+DBManager -> DB : INSERT prediction
+DB --> DBManager : Prediction stored
+DBManager --> API : Saved successfully
+
+
+== Patient Dashboard ==
+
+Patient -> UI : Open dashboard
+UI -> DB : Query patient\nprediction history
+DB --> UI : Sessions + predictions
+
+UI --> Patient : Display latest result,\nhistory and fluency trends
+
+
+== Clinical Report ==
+
+Patient -> UI : Generate clinical report
+UI -> DB : Retrieve selected\nsession records
+DB --> UI : Session data
+
+UI --> Patient : Report / CSV export
+Patient -> Therapist : Share report during\nclinical consultation
+
+@enduml

@@ -1,0 +1,51 @@
+@startuml
+
+title <size:20><b>VoxFlow - State Machine Diagram</b></size>\n<size:12>Speech Monitoring System States</size>
+
+top to bottom direction
+
+skinparam backgroundColor #F8FAFC
+skinparam shadowing false
+skinparam dpi 170
+
+skinparam state {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.5
+    FontColor #0F172A
+    FontSize 11
+}
+
+skinparam ArrowColor #64748B
+skinparam ArrowThickness 1.4
+
+
+state "Idle" as Idle #DBEAFE
+state "Receiving Audio" as Receive #E0F2FE
+state "Buffering Audio" as Buffer #DDD6FE
+state "Checking Speech" as Speech #EDE9FE
+state "Extracting Features" as Features #EDE9FE
+state "Predicting Fluency" as Predict #C4B5FD
+state "Storing Result" as Store #DCFCE7
+
+
+[*] --> Idle
+
+Idle --> Receive : Audio chunk received
+Receive --> Buffer : Add audio chunk
+
+Buffer --> Buffer : Window not ready
+Buffer --> Speech : Audio window ready
+
+Speech --> Receive : No speech detected
+Speech --> Features : Speech detected
+
+Features --> Predict : Features extracted
+Predict --> Store : Prediction generated
+
+Store --> Receive : Result saved
+
+Idle --> [*] : System stopped
+
+
+@enduml

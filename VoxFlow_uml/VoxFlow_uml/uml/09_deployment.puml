@@ -1,0 +1,91 @@
+@startuml
+
+title <size:20><b>VoxFlow - Deployment Diagram</b></size>\n<size:12>Physical Deployment and Communication Architecture</size>
+
+skinparam backgroundColor #F8FAFC
+skinparam shadowing false
+skinparam dpi 170
+
+skinparam node {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.5
+    FontColor #0F172A
+    FontSize 10
+    FontStyle bold
+}
+
+skinparam artifact {
+    BackgroundColor #FFFFFF
+    BorderColor #64748B
+    FontColor #0F172A
+    FontSize 9
+}
+
+skinparam database {
+    BackgroundColor #ECFDF5
+    BorderColor #166534
+    BorderThickness 1.5
+    FontColor #0F172A
+}
+
+skinparam cloud {
+    BackgroundColor #F8FAFC
+    BorderColor #64748B
+    FontColor #0F172A
+}
+
+skinparam actor {
+    BackgroundColor #DBEAFE
+    BorderColor #334155
+    FontColor #0F172A
+    FontSize 10
+    FontStyle bold
+}
+
+skinparam ArrowColor #64748B
+skinparam ArrowThickness 1.4
+
+
+node "Patient Speech Device" as Device #EFF6FF {
+
+    artifact "INMP441\nMicrophone" as Mic #DBEAFE
+    artifact "ESP8266\nController" as ESP #BFDBFE
+
+    Mic --> ESP : Audio capture
+}
+
+
+cloud "Wi-Fi Network" as WiFi #F8FAFC
+
+
+node "Host Computer" as Host #F5F3FF {
+
+    artifact "Flask REST API" as API #E0F2FE
+    artifact "Audio Processing" as Processing #DDD6FE
+    artifact "ML Model" as ML #C4B5FD
+    database "SQLite\nvoxflow_local.db" as DB #ECFDF5
+    artifact "Streamlit Dashboard" as Dashboard #DCFCE7
+    artifact "Online Trainer" as Trainer #FEF3C7
+
+    API --> Processing : Process audio
+    Processing --> ML : Predict
+    ML --> DB : Store prediction
+    DB --> Dashboard : History & trends
+    API --> Trainer : Retraining
+    Trainer --> ML : Update model
+}
+
+
+actor "Patient / User" as Patient #DBEAFE
+actor "Speech Therapist" as Therapist #FEF3C7
+
+
+Device -down-> WiFi : Wi-Fi
+WiFi -down-> API : HTTP audio
+
+Dashboard -down-> Patient : Results, history\nand reports
+Dashboard -down-> Therapist : Clinical report
+
+
+@enduml
