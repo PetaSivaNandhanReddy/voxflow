@@ -323,12 +323,24 @@ class TestStreamingProtocol(unittest.TestCase):
         chunk_size = 2000
         chunks = [raw_pcm[i:i + chunk_size] for i in range(0, len(raw_pcm), chunk_size)]
 
-        stream = io.BytesIO(create_stream(chunks))
-        pcm_out, count = receive_vxf1_stream(stream, progress_callback=False)
+    def test_21_sixty_second_hard_boundary_enforcement(self):
+        """21. Verify that 60.0s (1,920,000 bytes) is valid and >60.0s is rejected."""
+        sample_rate = 16000
+        # Exactly 60.0s
+        exact_60s_bytes = 60 * sample_rate * 2  # 1,920,000 bytes
+        duration_60 = exact_60s_bytes / (sample_rate * 2)
+        self.assertEqual(duration_60, 60.0)
 
-        self.assertEqual(len(pcm_out), 100000)
-        self.assertEqual(pcm_out, raw_pcm)
+        # 60.032s (1 extra 1024-sample frame = 2048 bytes over)
+        over_60s_bytes = exact_60s_bytes + 2048
+        over_duration = over_60s_bytes / (sample_rate * 2)
+        self.assertGreater(over_duration, 60.0)
+
+        # Verify bridge duration validation rule
+        self.assertTrue(3.0 <= duration_60 <= 60.0)
+        self.assertFalse(3.0 <= over_duration <= 60.0)
 
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -28,6 +28,7 @@
 #define BYTES_PER_SAMPLE 2
 #define FRAME_PAYLOAD_BYTES (SAMPLES_PER_FRAME * BYTES_PER_SAMPLE) // 2048 bytes (64ms of audio)
 #define MAX_RECORD_SECONDS 60
+#define MAX_TOTAL_SAMPLES ((uint32_t)SAMPLE_RATE * (uint32_t)MAX_RECORD_SECONDS) // Exactly 960,000 samples = 1,920,000 bytes = exactly 60.0s
 
 // Ring Buffer: 16 slots * 2048 bytes = 32,768 bytes (~1.024s buffer cushion)
 #define RING_BUFFER_SLOTS 16
@@ -189,6 +190,7 @@ void i2sCaptureTask(void* parameter) {
 
     uint32_t lastSuccessfulReadMs = millis();
     uint32_t recordStartTimeMs = millis();
+    uint32_t totalSamplesCaptured = 0;
 
     // Clear microphone DMA buffer at session start
     i2s_zero_dma_buffer(I2S_PORT);
@@ -204,13 +206,19 @@ void i2sCaptureTask(void* parameter) {
         }
       }
 
-      // 2. Check 60-second maximum duration
+      // 2. Check 60-second sample count hard limit (960,000 samples)
+      if (totalSamplesCaptured >= MAX_TOTAL_SAMPLES) {
+        stopRequested = true;
+        break;
+      }
+
+      // 3. Check 60-second time safety limit
       if (millis() - recordStartTimeMs >= ((uint32_t)MAX_RECORD_SECONDS * 1000UL)) {
         stopRequested = true;
         break;
       }
 
-      // 3. Acquire a free buffer slot from the ring buffer queue
+      // 4. Acquire a free buffer slot from the ring buffer queue
       AudioFrame* frame = NULL;
       if (xQueueReceive(freeQueue, &frame, 0) != pdTRUE || frame == NULL) {
         // OVERRUN: Consumer (Serial) could not drain ring buffer in time!
@@ -219,7 +227,7 @@ void i2sCaptureTask(void* parameter) {
         break;
       }
 
-      // 4. Read samples from I2S DMA
+      // 5. Read samples from I2S DMA
       size_t bytesRead = 0;
       esp_err_t result = i2s_read(
         I2S_PORT,
@@ -245,7 +253,19 @@ void i2sCaptureTask(void* parameter) {
       lastSuccessfulReadMs = millis();
       size_t samplesRead = bytesRead / sizeof(int32_t);
 
-      // 5. Convert 24-bit in 32-bit I2S word to 16-bit PCM with clamping
+      // Clamp samplesRead so total captured samples NEVER exceeds MAX_TOTAL_SAMPLES (960,000)
+      uint32_t remainingSamples = MAX_TOTAL_SAMPLES - totalSamplesCaptured;
+      if (samplesRead > remainingSamples) {
+        samplesRead = remainingSamples;
+      }
+
+      if (samplesRead == 0) {
+        xQueueSend(freeQueue, &frame, 0);
+        stopRequested = true;
+        break;
+      }
+
+      // 6. Convert 24-bit in 32-bit I2S word to 16-bit PCM with clamping
       for (size_t i = 0; i < samplesRead; ++i) {
         int32_t sample = rawI2SSamples[i] >> 16;
         if (sample > 32767) {
@@ -256,11 +276,17 @@ void i2sCaptureTask(void* parameter) {
         frame->samples[i] = (int16_t)sample;
       }
       frame->sampleCount = samplesRead;
+      totalSamplesCaptured += samplesRead;
 
-      // 6. Push captured frame to ready queue for consumer transmission
+      // 7. Push captured frame to ready queue for consumer transmission
       if (xQueueSend(readyQueue, &frame, pdMS_TO_TICKS(50)) != pdTRUE) {
         streamError = true;
         streamErrorCode = "ERROR:QUEUE_FULL";
+        break;
+      }
+
+      if (totalSamplesCaptured >= MAX_TOTAL_SAMPLES) {
+        stopRequested = true;
         break;
       }
     }
