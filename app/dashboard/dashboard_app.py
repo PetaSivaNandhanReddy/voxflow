@@ -163,16 +163,31 @@ EVENT_COLORS = {
 # Helper Formatting & Plotly Visualizations
 # =============================================================================
 
+# Timezone configuration: Display timestamps in Asia/Kolkata (IST)
+try:
+    from zoneinfo import ZoneInfo
+    IST_TZ = ZoneInfo("Asia/Kolkata")
+except Exception:
+    IST_TZ = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+
+
 def format_timestamp(ts_str):
-    """Parses ISO timestamp into clean human-readable date string."""
+    """Parses UTC timestamp and formats in Asia/Kolkata (IST) time."""
     if not ts_str or ts_str == "N/A":
         return "Recent Session"
     try:
-        clean_ts = ts_str.replace("T", " ")
+        clean_ts = str(ts_str).strip().replace("T", " ")
         if "." in clean_ts:
             clean_ts = clean_ts.split(".")[0]
+        if clean_ts.endswith("Z"):
+            clean_ts = clean_ts[:-1].strip()
+
         dt = datetime.datetime.strptime(clean_ts, "%Y-%m-%d %H:%M:%S")
-        return dt.strftime("%b %d, %Y · %I:%M %p")
+        # Explicitly treat naive database timestamps as UTC, then convert to IST
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
+        dt_ist = dt.astimezone(IST_TZ)
+        return dt_ist.strftime("%b %d, %Y · %I:%M %p")
     except Exception:
         return str(ts_str)
 
