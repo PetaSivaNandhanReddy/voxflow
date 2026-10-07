@@ -54,7 +54,7 @@ node "Host Workstation (Local Computer)" as Host #F5F3FF {
 
     artifact "Python Serial Bridge\n(tools/esp32_serial_bridge.py)" as Bridge #EDE9FE
     artifact "Flask REST API Service\n(http://localhost:5000)" as Flask #E0F2FE
-    artifact "Session Processing Engine\n(app/processing/session_engine.py)" as Engine #DDD6FE
+    artifact "Session Processing Engine\n(app/services/session_engine.py)" as Engine #DDD6FE
     artifact "HuBERT-D PyTorch Classifier\n(inference/engine.py)" as HuBERT #C4B5FD
     database "SQLite Persistence\n(voxflow.db)" as DB #ECFDF5
     artifact "Streamlit Dashboard Server\n(http://localhost:8501)" as Streamlit #DCFCE7
@@ -78,7 +78,7 @@ node "User Interface" as Client #F0FDF4 {
 ' PHYSICAL & NETWORK CONNECTIONS
 ' =========================================================
 
-Device -- Host : USB Serial Connection\n(COM8 / 460800 Baud / 16 kHz Mono PCM)
+Device -- Host : USB Serial Connection\n(460800 Baud / 16 kHz Mono PCM / Configurable COM Port)
 Streamlit -- Browser : HTTP\n(http://localhost:8501)
 
 @enduml

@@ -71,7 +71,7 @@ package "Session Processing & AI Engine" #F5F3FF {
     class "HubertMultiLabelClassifier" as HubertModel #C4B5FD {
         - hubert : HubertModel
         - classifier : Sequential
-        + forward(input_values, attention_mask) : Tensor
+        + forward(input_values) : Tensor
     }
 
     class "event_aggregator" as Aggregator <<module>> #DDD6FE {

@@ -49,7 +49,7 @@ API -> Engine : process_session_windows(session_id, audio, sr, duration_sec, eng
 
 loop For Each 3.0-Second Audio Window (1.0s hop)
     Engine -> InfEngine : predict_window(waveform, sample_rate)
-    InfEngine -> HubertModel : forward(input_values, ...)
+    InfEngine -> HubertModel : forward(input_values)
     HubertModel --> InfEngine : logits
     InfEngine -> InfEngine : Apply Sigmoids & locked thresholds\n(Rep: 0.77, Pro: 0.79, Blk: 0.57)
     InfEngine --> Engine : probabilities + threshold decisions

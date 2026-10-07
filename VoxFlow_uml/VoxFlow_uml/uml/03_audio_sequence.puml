@@ -1,5 +1,5 @@
 @startuml
-title <size:20><b>VoxFlow - Speech Session Capture Sequence</b></size>\n<size:12>ESP32 Hardware, Python Serial Bridge & REST Ingestion</size>
+title <size:20><b>VoxFlow - Speech Session Streaming Sequence</b></size>\n<size:12>ESP32 Producer-Consumer Streaming, VXF1 Protocol & REST Ingestion</size>
 
 hide footbox
 
@@ -30,9 +30,11 @@ skinparam participant {
 skinparam sequenceMessageAlign center
 
 actor "User" as User #DBEAFE
-participant "ESP32 Dev Module" as ESP #BFDBFE
-participant "INMP441 Microphone" as Mic #DBEAFE
-participant "Python Serial Bridge" as Bridge #EDE9FE
+participant "ESP32 Controller" as ESP #BFDBFE
+participant "INMP441 Mic" as Mic #DBEAFE
+participant "I2S Capture Task\n(Producer)" as Producer #BFDBFE
+queue "Ring Buffer\n(FreeRTOS Queue)" as Queue #EDE9FE
+participant "Python Serial Bridge\n(tools/esp32_serial_bridge.py)" as Bridge #EDE9FE
 participant "Flask REST API" as API #E0F2FE
 
 == 1. Initialization & Handshake ==
@@ -43,7 +45,7 @@ ESP --> Bridge : PONG
 Bridge -> API : POST /api/v1/session/start
 API --> Bridge : 201 Created (session_id)
 
-== 2. Audio Capture Execution ==
+== 2. Streaming Capture Initiation ==
 
 alt Physical-Buttons Mode (--physical-buttons)
     User -> ESP : Press START Button (GPIO27)
@@ -52,31 +54,40 @@ else Serial-Start Mode (Default)
 end
 
 ESP -> ESP : Status LED ON (GPIO4 HIGH)
+ESP -> Bridge : Header: RECORDING\nSAMPLE_RATE=16000\nFORMAT=PCM_S16LE_MONO\nSTREAM=VXF1\nDATA_START
+ESP -> Producer : Notify / Start capture task
 
-loop Continuous I2S Sampling (16 kHz 16-bit Mono)
-    ESP -> Mic : Read I2S PCM (SCK: 26, WS: 25, SD: 32)
-    Mic --> ESP : 16-bit audio samples
-    ESP -> ESP : Store in buffer
+== 3. Continuous Real-Time Streaming (VXF1 Framing) ==
+
+loop Continuous Audio Streaming (up to 60.0s / 960,000 samples)
+    Producer -> Mic : Read I2S DMA (1024 samples / 64ms)
+    Mic --> Producer : 24-bit raw I2S data
+    Producer -> Producer : Convert to 16-bit PCM (clamped)
+    Producer -> Queue : Enqueue AudioFrame (2048 bytes)
+
+    ESP -> Queue : Dequeue AudioFrame
+    ESP -> ESP : Compute IEEE 802.3 CRC32
+    ESP -> Bridge : VXF1 Frame [Magic: "VXF1" | Seq: N | Len: 2048 | CRC32 | Payload]
+    Bridge -> Bridge : Validate Seq == expected & CRC32 match\nAppend PCM payload to session stream
 end
 
 alt User Terminated
     User -> ESP : Press STOP Button (GPIO33)
-else Auto Timeout
-    ESP -> ESP : 60-second limit reached
+else Auto Timeout / Hard Limit
+    ESP -> ESP : 60-second limit reached (960,000 samples)
 end
 
-== 3. Dynamic Framing & Serial Transmission ==
+== 4. Stream Termination & WAV Reconstruction ==
 
-ESP -> ESP : Calculate exact AUDIO_BYTES
-ESP -> Bridge : Header: RECORDING\nAUDIO_BYTES=<exact_bytes>\nSAMPLE_RATE=16000\nFORMAT=PCM_S16LE_MONO
-
-ESP -> Bridge : Binary PCM stream (exact AUDIO_BYTES)
+ESP -> Queue : Drain & transmit any remaining queued frames
+ESP -> Bridge : Zero-length Frame [Magic: "VXF1" | Seq: N_final | Len: 0 | CRC32: 0]
 ESP -> Bridge : DONE marker
 ESP -> ESP : Status LED OFF (GPIO4 LOW)
 
-== 4. Local WAV Assembly & API Ingestion ==
+Bridge -> Bridge : Assemble ONE continuous WAV (16 kHz, 16-bit mono)
 
-Bridge -> Bridge : Write WAV container (16 kHz, 16-bit mono)
+== 5. API Ingestion & Inference Lifecycle ==
+
 Bridge -> API : POST /api/v1/session/<session_id>/audio (multipart WAV)
 API --> Bridge : 200 OK (Audio uploaded)
 

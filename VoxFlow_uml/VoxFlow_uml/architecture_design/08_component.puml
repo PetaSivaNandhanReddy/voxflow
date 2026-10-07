@@ -97,7 +97,7 @@ package "4. Storage & Session Dashboard" #F0FDF4 {
 ' CROSS-LAYER CONNECTIONS
 ' =========================================================
 
-ESP --> Bridge : USB Serial (460800 baud)
+ESP --> Bridge : USB Serial / VXF1 framed PCM / 460800 baud
 Bridge --> API : HTTP REST API (POST /api/v1/session/*)
 
 @enduml

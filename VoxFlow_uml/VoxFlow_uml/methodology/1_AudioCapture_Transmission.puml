@@ -27,30 +27,30 @@ start
 
 #DBEAFE:Initialize ESP32 Dev Module;\nConfigure I2S peripheral (SCK: 26, WS: 25, SD: 32);
 #DBEAFE:Set START (GPIO27) & STOP (GPIO33) to INPUT_PULLUP;\nSet Status LED (GPIO4) to OUTPUT (LOW);
-#DBEAFE:Allocate audio buffer (PSRAM / Internal SRAM);\nEmit "READY" & synchronize via PING / PONG;
+#DBEAFE:Initialize 16-slot Ring Buffer Queue (32 KB);\nEmit "READY" & synchronize via PING / PONG;
 
 if (START Trigger Received?) then (Physical Button or Serial START)
 
-    #BFDBFE:Turn Status LED ON (GPIO4 HIGH);\nClear I2S DMA buffer;
+    #BFDBFE:Turn Status LED ON (GPIO4 HIGH);\nSend Protocol Header (STREAM=VXF1, DATA_START);
 
     repeat
-        #BFDBFE:Sample 16 kHz audio via INMP441 I2S;\nConvert to 16-bit PCM with clamping;
-        #BFDBFE:Store PCM samples in buffer;
+        #BFDBFE:Capture 1024 samples via INMP441 I2S DMA;\nConvert 24-bit to 16-bit PCM (clamped [-32768, 32767]);
+        #BFDBFE:Enqueue audio frame into FreeRTOS ring buffer;\n(Check for buffer overrun / I2S stall);
+        #EDE9FE:Consumer pops frame & computes CRC32;\nTransmit VXF1 frame (Magic, Seq, Length, CRC32, Payload);
+        #EDE9FE:Python Bridge validates sequence & CRC32;\nAppends verified PCM payload to session stream;
 
-        if (STOP Requested?) then (Yes)
-            #DDD6FE:Terminate capture loop early;
+        if (STOP Requested or 60s hard limit reached?) then (Yes)
+            #DDD6FE:Flush remaining buffered frames in queue;\nTerminate producer capture task;
             break
         endif
 
-    repeat while (60-second maximum reached?) is (No)
+    repeat while (Continuous Speech Streaming Active) is (Yes)
 
-    #DDD6FE:Calculate exact dynamic AUDIO_BYTES;
+    #EDE9FE:Transmit zero-length terminal frame\n(Magic: VXF1, Seq: N, Length: 0, CRC32: 0);
 
-    #EDE9FE:Emit Protocol Header:\nRECORDING\nAUDIO_BYTES=<exact_bytes>\nSAMPLE_RATE=16000\nFORMAT=PCM_S16LE_MONO;
+    #EDE9FE:Transmit "DONE" text marker;
 
-    #EDE9FE:Transmit exact binary PCM payload\nover USB Serial (460800 baud);
-
-    #EDE9FE:Flush UART & transmit "DONE" marker;
+    #EDE9FE:Python Bridge reconstructs ONE continuous WAV\n(16 kHz, 16-bit Mono PCM, 3.0s - 60.0s);
 
     #DCFCE7:Turn Status LED OFF (GPIO4 LOW);\nReturn to idle listening state;
 
