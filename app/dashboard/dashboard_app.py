@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-VoxFlow V2 — Clinical Session Monitoring Dashboard
+VoxFlow V2 — Speech Fluency & Disfluency Session Analyzer Dashboard
 Streamlit interface for continuous speech recording analysis, sliding-window disfluency
-detection with HuBERT_D, interactive multi-label event timelines, and fluency trend tracking.
+detection with HuBERT-D, event localization, session history, and longitudinal trends.
 """
 
 import os
 import sys
 import pathlib
+import datetime
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -30,145 +31,218 @@ from app.db.database import (
 from app.services.session_engine import process_continuous_session
 from inference.engine import get_inference_engine
 
-# Initialize database schema
+# Initialize database schema safely
 init_db()
 
 # Page configuration
 st.set_page_config(
-    page_title="VoxFlow — Speech Fluency Analysis Platform",
+    page_title="VoxFlow — Speech Fluency Session Analyzer",
     page_icon="🎙️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom Design System
+# =============================================================================
+# Custom Design System (Clean, Modern, Calm, Accessible)
+# =============================================================================
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-    
+    /* Global Typography & Background */
     html, body, [class*="css"] {
-        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+        color: #1E293B;
     }
-    .vox-card {
-        background: #FFFFFF;
+    
+    /* App Header Banner */
+    .app-header {
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #E2E8F0;
+    }
+    .app-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #0F172A;
+        letter-spacing: -0.02em;
+        margin: 0;
+    }
+    .app-subtitle {
+        font-size: 15px;
+        color: #64748B;
+        margin-top: 4px;
+        margin-bottom: 0;
+    }
+
+    /* Content Cards */
+    .vf-card {
+        background-color: #FFFFFF;
         border: 1px solid #E2E8F0;
         border-radius: 12px;
-        padding: 18px 22px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04);
+        padding: 20px 24px;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+    }
+    
+    /* Metric Cards */
+    .vf-metric-container {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    .vf-metric-card {
+        flex: 1;
+        min-width: 160px;
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 10px;
+        padding: 16px 20px;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+    }
+    .vf-metric-card.primary {
+        background: #F8FAFC;
+        border-color: #CBD5E1;
+    }
+    .vf-metric-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 4px;
+    }
+    .vf-metric-val {
+        font-size: 28px;
+        font-weight: 700;
+        color: #0F172A;
+    }
+    .vf-metric-val.fluency {
+        color: #059669;
+    }
+    .vf-metric-val.rep {
+        color: #D97706;
+    }
+    .vf-metric-val.pro {
+        color: #2563EB;
+    }
+    .vf-metric-val.blk {
+        color: #7C3AED;
+    }
+
+    /* Empty States */
+    .vf-empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        background: #F8FAFC;
+        border: 1px dashed #CBD5E1;
+        border-radius: 12px;
+        margin: 20px 0;
+    }
+    .vf-empty-title {
+        font-size: 17px;
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 6px;
+    }
+    .vf-empty-desc {
+        font-size: 14px;
+        color: #64748B;
         margin-bottom: 16px;
     }
-    .vox-stat-label {
-        font-size: 12px;
-        color: #64748B;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    .vox-stat-val {
-        font-size: 26px;
-        font-weight: 800;
-        color: #0F172A;
-        margin-top: 4px;
-    }
-    .disclaimer-banner {
-        background-color: #FEF3C7;
-        border-left: 4px solid #F59E0B;
+
+    /* Subtle Notice Banner */
+    .vf-notice-box {
+        background-color: #F8FAFC;
+        border-left: 3px solid #64748B;
         padding: 12px 16px;
-        border-radius: 6px;
-        color: #92400E;
+        border-radius: 4px;
         font-size: 13px;
-        margin-bottom: 20px;
+        color: #475569;
+        margin-top: 24px;
+    }
+
+    /* Pill Badges */
+    .badge-rep {
+        background-color: #FEF3C7;
+        color: #92400E;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 12px;
+    }
+    .badge-pro {
+        background-color: #DBEAFE;
+        color: #1E40AF;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 12px;
+    }
+    .badge-blk {
+        background-color: #EDE9FE;
+        color: #5B21B6;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 12px;
+    }
+    .badge-fluent {
+        background-color: #D1FAE5;
+        color: #065F46;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 12px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Sidebar Navigation
-st.sidebar.title("🎙️ VoxFlow V2")
-st.sidebar.caption("Continuous Speech Fluency Monitoring")
-
-page = st.sidebar.radio(
-    "Navigation",
-    ["Analyze Session", "Current Session", "Session History", "Fluency Trends", "Model Information"]
-)
-
-st.sidebar.divider()
-engine = get_inference_engine()
-info = engine.get_model_info()
-
-st.sidebar.markdown(f"**Active Model:** `{info['model_id']}`")
-st.sidebar.caption(f"**Backbone:** `{info['model_name']}`")
-st.sidebar.caption(f"**Device:** `{info['device'].upper()}`")
-st.sidebar.caption(f"**Locked Thresholds:**")
-for k, v in info['thresholds'].items():
-    st.sidebar.caption(f"• {k}: **{v:.2f}**")
-
-st.sidebar.divider()
-st.sidebar.caption(f"Test Macro F1: **0.4599**")
-st.sidebar.caption(f"Test ROC-AUC: **0.8099**")
-
+# Color Scheme for Event Categories
+EVENT_COLORS = {
+    "Repetition": "#D97706",     # Warm Amber
+    "Prolongation": "#2563EB",   # Clear Blue
+    "Block": "#7C3AED",          # Purple
+    "Fluent": "#059669"          # Emerald Green
+}
 
 # =============================================================================
-# Helper Visualizations & Data Formatting
+# Helper Formatting & Plotly Visualizations
 # =============================================================================
-def create_probability_timeline(windows, thresholds):
-    """Generates an interactive Plotly timeline of window-level disfluency probabilities."""
-    if not windows:
-        return None
-    timeline_rows = []
-    for w in windows:
-        start_t = w.get("start_time", 0.0)
-        prob_rep = w.get("prob_repetition") if "prob_repetition" in w else w.get("probabilities", {}).get("Repetition", 0.0)
-        prob_pro = w.get("prob_prolongation") if "prob_prolongation" in w else w.get("probabilities", {}).get("Prolongation", 0.0)
-        prob_blk = w.get("prob_block") if "prob_block" in w else w.get("probabilities", {}).get("Block", 0.0)
-        timeline_rows.append({
-            "Time (s)": start_t,
-            "Repetition": float(prob_rep or 0.0),
-            "Prolongation": float(prob_pro or 0.0),
-            "Block": float(prob_blk or 0.0)
-        })
-    df_time = pd.DataFrame(timeline_rows)
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df_time["Time (s)"], y=df_time["Repetition"], name="Repetition", line=dict(color="#EF4444", width=2.5), mode="lines+markers"))
-    fig.add_trace(go.Scatter(x=df_time["Time (s)"], y=df_time["Prolongation"], name="Prolongation", line=dict(color="#F59E0B", width=2.5), mode="lines+markers"))
-    fig.add_trace(go.Scatter(x=df_time["Time (s)"], y=df_time["Block"], name="Block", line=dict(color="#3B82F6", width=2.5), mode="lines+markers"))
 
-    th_rep = thresholds.get("Repetition", 0.77)
-    th_pro = thresholds.get("Prolongation", 0.79)
-    th_blk = thresholds.get("Block", 0.57)
-
-    fig.add_hline(y=th_rep, line_dash="dash", line_color="#EF4444", annotation_text=f"Rep Th: {th_rep:.2f}", annotation_position="top right")
-    fig.add_hline(y=th_pro, line_dash="dash", line_color="#F59E0B", annotation_text=f"Pro Th: {th_pro:.2f}", annotation_position="top right")
-    fig.add_hline(y=th_blk, line_dash="dash", line_color="#3B82F6", annotation_text=f"Blk Th: {th_blk:.2f}", annotation_position="top right")
-
-    fig.update_layout(
-        xaxis_title="Session Time (seconds)",
-        yaxis_title="Model Posterior Probability",
-        yaxis_range=[0.0, 1.05],
-        hovermode="x unified",
-        margin=dict(l=20, r=20, t=30, b=20),
-        height=360,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-    )
-    return fig
+def format_timestamp(ts_str):
+    """Parses ISO timestamp into clean human-readable date string."""
+    if not ts_str or ts_str == "N/A":
+        return "Recent Session"
+    try:
+        # Handle string formats like '2026-10-06T17:15:29' or '2026-10-06 17:15:29'
+        clean_ts = ts_str.replace("T", " ")
+        if "." in clean_ts:
+            clean_ts = clean_ts.split(".")[0]
+        dt = datetime.datetime.strptime(clean_ts, "%Y-%m-%d %H:%M:%S")
+        return dt.strftime("%b %d, %Y · %I:%M %p")
+    except Exception:
+        return str(ts_str)
 
 
-def create_event_timeline(events):
-    """Generates a horizontal timeline chart for detected disfluency events."""
+def create_event_timeline(events, session_duration=None):
+    """Generates a clean horizontal timeline chart for detected disfluency events."""
     if not events:
         return None
-    color_map = {
-        "Repetition": "#EF4444",
-        "Prolongation": "#F59E0B",
-        "Block": "#3B82F6"
-    }
+
     fig = go.Figure()
+    
+    # Track min/max to set reasonable axis range
+    max_time = session_duration or 0.0
+
     for ev in events:
         ev_type = ev.get("event_type", "Event")
         start = float(ev.get("start_time", 0.0))
         end = float(ev.get("end_time", start + 1.0))
         dur = round(end - start, 2)
-        conf = round(float(ev.get("confidence", 0.0)), 2)
-        color = color_map.get(ev_type, "#6366F1")
+        conf = round(float(ev.get("confidence", 0.0)) * 100, 1)
+        color = EVENT_COLORS.get(ev_type, "#475569")
+        if end > max_time:
+            max_time = end
         
         fig.add_trace(go.Bar(
             name=ev_type,
@@ -176,17 +250,113 @@ def create_event_timeline(events):
             y=[ev_type],
             base=[start],
             orientation="h",
-            marker=dict(color=color),
-            hovertemplate=f"<b>{ev_type}</b><br>Start: {start}s<br>End: {end}s<br>Duration: {dur}s<br>Confidence: {conf}<extra></extra>",
+            marker=dict(
+                color=color,
+                line=dict(color="#FFFFFF", width=1.5)
+            ),
+            hovertemplate=(
+                f"<b>{ev_type}</b><br>"
+                f"Start: {start:.1f}s<br>"
+                f"End: {end:.1f}s<br>"
+                f"Duration: {dur:.1f}s<br>"
+                f"Confidence: {conf:.0f}%<extra></extra>"
+            ),
             showlegend=False
         ))
 
     fig.update_layout(
-        xaxis_title="Session Time (seconds)",
-        yaxis_title="Disfluency Category",
+        xaxis=dict(
+            title="Session Time (seconds)",
+            showgrid=True,
+            gridcolor="#F1F5F9",
+            zeroline=False,
+            range=[0, max(max_time + 1.0, 5.0)]
+        ),
+        yaxis=dict(
+            title="",
+            categoryorder="array",
+            categoryarray=["Block", "Prolongation", "Repetition"],
+            showgrid=False
+        ),
         barmode="overlay",
-        height=220,
-        margin=dict(l=20, r=20, t=20, b=20)
+        height=200,
+        plot_bgcolor="#FFFFFF",
+        paper_bgcolor="#FFFFFF",
+        margin=dict(l=10, r=20, t=10, b=35)
+    )
+    return fig
+
+
+def create_event_table(events):
+    """Formats detected events into a clean, human-readable dataframe."""
+    if not events:
+        return pd.DataFrame()
+    rows = []
+    for ev in events:
+        start = float(ev.get("start_time", 0.0))
+        end = float(ev.get("end_time", start + 1.0))
+        dur = round(end - start, 2)
+        conf = float(ev.get("confidence", 0.0)) * 100
+        rows.append({
+            "Type": ev.get("event_type", "Event"),
+            "Start": f"{start:.1f}s",
+            "End": f"{end:.1f}s",
+            "Duration": f"{dur:.1f}s",
+            "Confidence": f"{conf:.0f}%"
+        })
+    return pd.DataFrame(rows)
+
+
+def create_probability_timeline(windows, thresholds):
+    """Generates an interactive Plotly timeline for window-level probabilities (Advanced Analysis)."""
+    if not windows:
+        return None
+    timeline_rows = []
+    for w in windows:
+        start_t = float(w.get("start_time", 0.0))
+        prob_rep = float(w.get("prob_repetition") if "prob_repetition" in w else w.get("probabilities", {}).get("Repetition", 0.0))
+        prob_pro = float(w.get("prob_prolongation") if "prob_prolongation" in w else w.get("probabilities", {}).get("Prolongation", 0.0))
+        prob_blk = float(w.get("prob_block") if "prob_block" in w else w.get("probabilities", {}).get("Block", 0.0))
+        timeline_rows.append({
+            "Time (s)": start_t,
+            "Repetition": prob_rep,
+            "Prolongation": prob_pro,
+            "Block": prob_blk
+        })
+    df_time = pd.DataFrame(timeline_rows)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df_time["Time (s)"], y=df_time["Repetition"],
+        name="Repetition", line=dict(color=EVENT_COLORS["Repetition"], width=2.5), mode="lines+markers"
+    ))
+    fig.add_trace(go.Scatter(
+        x=df_time["Time (s)"], y=df_time["Prolongation"],
+        name="Prolongation", line=dict(color=EVENT_COLORS["Prolongation"], width=2.5), mode="lines+markers"
+    ))
+    fig.add_trace(go.Scatter(
+        x=df_time["Time (s)"], y=df_time["Block"],
+        name="Block", line=dict(color=EVENT_COLORS["Block"], width=2.5), mode="lines+markers"
+    ))
+
+    # Threshold guidelines
+    th_rep = thresholds.get("Repetition", 0.77)
+    th_pro = thresholds.get("Prolongation", 0.79)
+    th_blk = thresholds.get("Block", 0.57)
+
+    fig.add_hline(y=th_rep, line_dash="dash", line_color=EVENT_COLORS["Repetition"], annotation_text=f"Rep Th: {th_rep:.2f}", annotation_position="top right")
+    fig.add_hline(y=th_pro, line_dash="dash", line_color=EVENT_COLORS["Prolongation"], annotation_text=f"Pro Th: {th_pro:.2f}", annotation_position="top right")
+    fig.add_hline(y=th_blk, line_dash="dash", line_color=EVENT_COLORS["Block"], annotation_text=f"Blk Th: {th_blk:.2f}", annotation_position="top right")
+
+    fig.update_layout(
+        xaxis_title="Session Time (seconds)",
+        yaxis_title="Probability",
+        yaxis_range=[0.0, 1.05],
+        hovermode="x unified",
+        plot_bgcolor="#FFFFFF",
+        paper_bgcolor="#FFFFFF",
+        margin=dict(l=20, r=20, t=30, b=20),
+        height=320,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
     return fig
 
@@ -198,11 +368,11 @@ def create_window_audit_df(windows):
     rows = []
     for i, w in enumerate(windows):
         idx = w.get("window_index", w.get("window_id", i))
-        start_t = w.get("start_time", 0.0)
-        end_t = w.get("end_time", 0.0)
-        prob_rep = w.get("prob_repetition") if "prob_repetition" in w else w.get("probabilities", {}).get("Repetition", 0.0)
-        prob_pro = w.get("prob_prolongation") if "prob_prolongation" in w else w.get("probabilities", {}).get("Prolongation", 0.0)
-        prob_blk = w.get("prob_block") if "prob_block" in w else w.get("probabilities", {}).get("Block", 0.0)
+        start_t = float(w.get("start_time", 0.0))
+        end_t = float(w.get("end_time", start_t + 3.0))
+        prob_rep = float(w.get("prob_repetition") if "prob_repetition" in w else w.get("probabilities", {}).get("Repetition", 0.0))
+        prob_pro = float(w.get("prob_prolongation") if "prob_prolongation" in w else w.get("probabilities", {}).get("Prolongation", 0.0))
+        prob_blk = float(w.get("prob_block") if "prob_block" in w else w.get("probabilities", {}).get("Block", 0.0))
         
         is_fluent = w.get("is_fluent")
         if isinstance(is_fluent, (int, float)):
@@ -220,389 +390,508 @@ def create_window_audit_df(windows):
         else:
             active_str = str(labels)
 
-        conf = float(w.get("confidence", 0.0))
+        conf = float(w.get("confidence", 0.0)) * 100
 
         rows.append({
-            "Window #": idx,
-            "Start Time (s)": round(float(start_t), 2),
-            "End Time (s)": round(float(end_t), 2),
-            "Repetition Prob": round(float(prob_rep or 0.0), 4),
-            "Prolongation Prob": round(float(prob_pro or 0.0), 4),
-            "Block Prob": round(float(prob_blk or 0.0), 4),
-            "Active Labels": active_str,
+            "Window #": idx + 1 if isinstance(idx, int) else idx,
+            "Start": f"{start_t:.1f}s",
+            "End": f"{end_t:.1f}s",
+            "Rep Prob": f"{prob_rep:.2f}",
+            "Pro Prob": f"{prob_pro:.2f}",
+            "Blk Prob": f"{prob_blk:.2f}",
+            "Detections": active_str,
             "Status": fluent_str,
-            "Confidence": round(conf, 4)
+            "Confidence": f"{conf:.0f}%"
         })
     return pd.DataFrame(rows)
 
 
-# =============================================================================
-# 1. Analyze Session
-# =============================================================================
-if page == "Analyze Session":
-    st.title("🎙️ Speech Session Analysis & Ingestion")
-    st.markdown("VoxFlow supports continuous speech processing via two operational workflows: direct WAV file upload for clinical inspection and hardware audio capture via the ESP32 serial bridge.")
+def render_session_report(session_data, engine):
+    """Reusable visual report renderer for a session result or inspected session."""
+    summary = session_data
+    windows = session_data.get("windows", [])
+    events = session_data.get("events", [])
+    
+    # 1. Summary Metric Cards
+    fluency_pct = round(float(summary.get("fluency_ratio", 1.0)) * 100, 1)
+    duration_s = float(summary.get("duration_sec", 0.0))
+    rep_count = int(summary.get("repetition_count", 0))
+    pro_count = int(summary.get("prolongation_count", 0))
+    blk_count = int(summary.get("block_count", 0))
+    
+    col1, col2, col3, col4 = st.columns([1.2, 1, 1, 1])
+    with col1:
+        st.markdown(f"""
+        <div class="vf-metric-card primary">
+            <div class="vf-metric-label">Session Fluency</div>
+            <div class="vf-metric-val fluency">{fluency_pct:.0f}%</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with col2:
+        st.markdown(f"""
+        <div class="vf-metric-card">
+            <div class="vf-metric-label">Repetition</div>
+            <div class="vf-metric-val rep">{rep_count}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with col3:
+        st.markdown(f"""
+        <div class="vf-metric-card">
+            <div class="vf-metric-label">Prolongation</div>
+            <div class="vf-metric-val pro">{pro_count}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with col4:
+        st.markdown(f"""
+        <div class="vf-metric-card">
+            <div class="vf-metric-label">Block</div>
+            <div class="vf-metric-val blk">{blk_count}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
+    # 2. Audio Playback
+    audio_path = summary.get("audio_path")
+    if audio_path and os.path.exists(audio_path):
+        st.markdown("##### Audio Recording")
+        st.audio(audio_path, format="audio/wav")
+
+    st.markdown("---")
+
+    # 3. Detected Events Section
+    st.markdown("#### Detected Events")
+    if events:
+        fig_ev = create_event_timeline(events, session_duration=duration_s)
+        if fig_ev:
+            st.plotly_chart(fig_ev, use_container_width=True)
+
+        df_ev = create_event_table(events)
+        if not df_ev.empty:
+            st.dataframe(df_ev, use_container_width=True, hide_index=True)
+    else:
+        st.info("No disfluency events were detected in this session.")
+
+    # 4. Collapsible Advanced Analysis
+    with st.expander("▸ Advanced Analysis (Model Probabilities & Window Audit)"):
+        st.caption("Detailed window-level model posterior probabilities and sliding analysis window outputs.")
+        
+        info = engine.get_model_info() if engine else MODEL_CONFIG
+        thresholds = info.get("thresholds", MODEL_CONFIG["locked_thresholds"])
+        
+        if windows:
+            fig_prob = create_probability_timeline(windows, thresholds)
+            if fig_prob:
+                st.markdown("###### Multi-Label Probability Timeline")
+                st.plotly_chart(fig_prob, use_container_width=True)
+
+            st.markdown("###### Window-Level Prediction Details")
+            df_audit = create_window_audit_df(windows)
+            if not df_audit.empty:
+                st.dataframe(df_audit, use_container_width=True, hide_index=True)
+        else:
+            st.caption("No window-level audit data stored for this session.")
+
+
+# =============================================================================
+# Navigation Setup
+# =============================================================================
+
+# Initialize session state for navigation
+if "active_page" not in st.session_state:
+    st.session_state["active_page"] = "Home"
+
+if "last_analyzed_session" not in st.session_state:
+    st.session_state["last_analyzed_session"] = None
+
+# Sidebar
+st.sidebar.markdown("""
+<div style="margin-bottom: 12px;">
+    <span style="font-size: 20px; font-weight: 800; color: #0F172A; letter-spacing: -0.01em;">VOXFLOW</span><br>
+    <span style="font-size: 13px; color: #64748B;">Speech Fluency & Disfluency Analyzer</span>
+</div>
+""", unsafe_allow_html=True)
+
+nav_choice = st.sidebar.radio(
+    "Navigation",
+    ["Home", "Analyze", "Sessions", "Trends"],
+    index=["Home", "Analyze", "Sessions", "Trends"].index(st.session_state["active_page"]) if st.session_state["active_page"] in ["Home", "Analyze", "Sessions", "Trends"] else 0,
+    label_visibility="collapsed"
+)
+
+# Update state if changed via sidebar radio
+if nav_choice != st.session_state["active_page"]:
+    st.session_state["active_page"] = nav_choice
+
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
+
+with st.sidebar.expander("About VoxFlow"):
     st.markdown("""
-    <div class="disclaimer-banner">
-        ⚠️ <strong>Clinical Notice:</strong> VoxFlow is an engineering research prototype designed for automated speech fluency monitoring
-        and temporal event localization. It is <strong>not a medical diagnostic system</strong>.
+    **VoxFlow** analyzes recorded speech sessions and identifies three disfluency categories: **Repetition**, **Prolongation**, and **Block**.
+    
+    Speech analysis is powered by the project's trained HuBERT acoustic model.
+    
+    *Notice:* VoxFlow is a research prototype and is not a medical diagnostic system.
+    """)
+
+# Load inference engine singleton safely
+try:
+    engine = get_inference_engine()
+except Exception as ex:
+    engine = None
+    st.sidebar.warning(f"Inference engine notice: {ex}")
+
+
+# =============================================================================
+# PAGE 1 — HOME
+# =============================================================================
+if st.session_state["active_page"] == "Home":
+    st.markdown("""
+    <div class="app-header">
+        <h1 class="app-title">VoxFlow</h1>
+        <p class="app-subtitle">Speech Fluency & Disfluency Session Analyzer</p>
     </div>
     """, unsafe_allow_html=True)
 
-    tab_wav, tab_hw = st.tabs(["📁 A. WAV Upload & Analysis", "📡 B. ESP32 Phase-1 Hardware Capture"])
+    st.markdown("""
+    Analyze speech sessions, identify disfluency events, and review fluency over time.
+    """)
 
-    with tab_wav:
-        st.subheader("WAV Upload & Analysis")
-        st.caption("Upload a speech recording (WAV format, 16 kHz mono) for sliding-window inference with the locked HuBERT_D model.")
-
-        uploaded_file = st.file_uploader("Select Speech Audio File (WAV)", type=["wav"], key="wav_uploader")
-
-        if uploaded_file is not None:
-            st.audio(uploaded_file, format="audio/wav")
-
-            col_btn, _ = st.columns([1, 4])
-            with col_btn:
-                run_analysis = st.button("Run Full Session Analysis", type="primary", use_container_width=True)
-
-            if run_analysis:
-                with st.spinner("Processing continuous audio through HuBERT_D sliding-window pipeline..."):
-                    try:
-                        audio_bytes = uploaded_file.read()
-                        summary, windows, events = process_continuous_session(
-                            audio_source=audio_bytes,
-                            filename=uploaded_file.name,
-                            engine=engine
-                        )
-                        # Persist session in SQLite
-                        save_session(summary, windows, events)
-
-                        st.success(f"Analysis complete! Session ID: `{summary['session_id']}`")
-
-                        # Key Metrics Cards
-                        m1, m2, m3, m4 = st.columns(4)
-                        m1.metric("Session Duration", f"{summary['duration_sec']:.1f}s")
-                        m2.metric("Total Windows (3s)", summary['total_windows'])
-                        m3.metric("Fluent Windows", summary['fluent_windows'])
-                        m4.metric("Session Fluency Ratio", f"{summary['fluency_ratio']*100:.1f}%")
-
-                        # Disfluency Event Counts
-                        e1, e2, e3 = st.columns(3)
-                        e1.metric(f"Repetitions (Th: {info['thresholds'].get('Repetition', 0.77):.2f})", summary['repetition_count'])
-                        e2.metric(f"Prolongations (Th: {info['thresholds'].get('Prolongation', 0.79):.2f})", summary['prolongation_count'])
-                        e3.metric(f"Blocks (Th: {info['thresholds'].get('Block', 0.57):.2f})", summary['block_count'])
-
-                        st.divider()
-
-                        # Interactive Probability Timeline Chart
-                        st.subheader("Temporal Multi-Label Probability Flow")
-                        fig_prob = create_probability_timeline(windows, info["thresholds"])
-                        if fig_prob:
-                            st.plotly_chart(fig_prob, use_container_width=True)
-
-                        # Window-level audit table
-                        st.subheader("Window-Level Model Output")
-                        df_audit = create_window_audit_df(windows)
-                        if not df_audit.empty:
-                            st.dataframe(df_audit, use_container_width=True)
-
-                        st.divider()
-
-                        # Aggregated Event Timeline
-                        st.subheader("Aggregated Disfluency Events")
-                        if events:
-                            df_events = pd.DataFrame(events)
-                            df_events["duration_sec"] = (df_events["end_time"] - df_events["start_time"]).round(2)
-                            st.dataframe(
-                                df_events[["event_type", "start_time", "end_time", "duration_sec", "confidence", "supporting_windows"]],
-                                column_config={
-                                    "event_type": "Disfluency Category",
-                                    "start_time": "Start Time (s)",
-                                    "end_time": "End Time (s)",
-                                    "duration_sec": "Duration (s)",
-                                    "confidence": "Avg Confidence",
-                                    "supporting_windows": "Support Windows"
-                                },
-                                use_container_width=True
-                            )
-                            fig_ev = create_event_timeline(events)
-                            if fig_ev:
-                                st.plotly_chart(fig_ev, use_container_width=True)
-                        else:
-                            st.info("No stuttering events detected above locked decision thresholds. Speech is classified as fluent.")
-
-                    except Exception as ex:
-                        st.error(f"Error processing session: {ex}")
-
-    with tab_hw:
-        st.subheader("ESP32 Phase-1 Hardware Capture Workflow")
-        st.markdown("""
-        The Phase-1 hardware integration captures 16 kHz 16-bit PCM audio from the **ESP32 + INMP441** microphone module over USB serial.
-        Hardware capture is managed by the external Python serial bridge utility.
-        """)
-
-        st.markdown("#### Hardware End-to-End Pipeline")
-        st.code("""
-ESP32 + INMP441
-      ↓
-USB / COM8
-      ↓
-Python Serial Bridge
-      ↓
-10-second WAV
-      ↓
-VoxFlow REST API
-      ↓
-HuBERT-D Analysis
-      ↓
-SQLite
-      ↓
-Streamlit Dashboard
-""", language="text")
-
-        st.markdown("#### Running Hardware Capture")
-        st.markdown("Execute the serial bridge script from your terminal to stream audio from the ESP32 and automatically submit it to the VoxFlow API:")
-        st.code("python tools/esp32_serial_bridge.py --port COM8", language="bash")
-
-        st.markdown("To capture and save a local WAV file without uploading to the API:")
-        st.code("python tools/esp32_serial_bridge.py --port COM8 --skip-api", language="bash")
-
-        st.markdown("#### Architecture Notes")
-        st.markdown("""
-        - **Fixed Capture Duration:** Phase-1 recording duration is fixed at **10.0 seconds** (320,000 bytes at 16 kHz 16-bit mono PCM).
-        - **Default Serial Port:** The standard hardware port is `COM8` (configurable via `--port`).
-        - **Automatic Analysis & Ingestion:** The Python serial bridge sends the captured WAV to the existing VoxFlow session API (`POST /api/v1/session/<session_id>/audio`), then stops and analyzes the session; the results are saved to SQLite.
-        - **Result Inspection:** Once the bridge completes, view the analysis under **Current Session** or **Session History**.
-        - **Decoupled Architecture:** The Streamlit dashboard does not directly communicate with serial hardware ports.
-        """)
-
-
-# =============================================================================
-# 2. Current Session
-# =============================================================================
-elif page == "Current Session":
-    st.title("🎙️ Current Session Monitoring")
-
-    col_title, col_refresh = st.columns([3, 1])
-    with col_title:
-        st.subheader("Latest Analyzed Session")
-    with col_refresh:
-        if st.button("🔄 Refresh Latest Session", use_container_width=True):
+    col_btn, _ = st.columns([1.5, 4])
+    with col_btn:
+        if st.button("🎙️ Analyze New Session", type="primary", use_container_width=True):
+            st.session_state["active_page"] = "Analyze"
             st.rerun()
 
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Check for latest session
     latest = get_latest_session()
 
-    if not latest:
-        st.info("No analyzed sessions found in the SQLite database yet. Please analyze a WAV file or run the ESP32 serial bridge to record a session.")
+    if latest:
+        st.markdown("### Latest Session")
+        created_str = format_timestamp(latest.get("created_at") or latest.get("started_at"))
+        dur = float(latest.get("duration_sec", 0.0))
+        fluency = round(float(latest.get("fluency_ratio", 1.0)) * 100, 1)
+        total_events = int(latest.get("repetition_count", 0)) + int(latest.get("prolongation_count", 0)) + int(latest.get("block_count", 0))
+
+        st.markdown(f"""
+        <div class="vf-card">
+            <div style="font-size: 13px; color: #64748B; margin-bottom: 12px;">{created_str} · Duration: {dur:.1f}s</div>
+            <div class="vf-metric-container" style="margin-bottom: 12px;">
+                <div class="vf-metric-card primary">
+                    <div class="vf-metric-label">Fluency</div>
+                    <div class="vf-metric-val fluency">{fluency:.0f}%</div>
+                </div>
+                <div class="vf-metric-card">
+                    <div class="vf-metric-label">Total Events</div>
+                    <div class="vf-metric-val">{total_events}</div>
+                </div>
+                <div class="vf-metric-card">
+                    <div class="vf-metric-label">Repetition</div>
+                    <div class="vf-metric-val rep">{latest.get('repetition_count', 0)}</div>
+                </div>
+                <div class="vf-metric-card">
+                    <div class="vf-metric-label">Prolongation</div>
+                    <div class="vf-metric-val pro">{latest.get('prolongation_count', 0)}</div>
+                </div>
+                <div class="vf-metric-card">
+                    <div class="vf-metric-label">Block</div>
+                    <div class="vf-metric-val blk">{latest.get('block_count', 0)}</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        col_view, _ = st.columns([1.5, 4])
+        with col_view:
+            if st.button("View Full Session Details", use_container_width=True):
+                st.session_state["active_page"] = "Sessions"
+                st.session_state["selected_session_id"] = latest["id"]
+                st.rerun()
+
     else:
-        # Session Metadata Card
-        with st.container():
-            col_m1, col_m2 = st.columns(2)
-            with col_m1:
-                st.markdown(f"**Session ID:** `{latest['id']}`")
-                created_ts = latest.get("created_at") or latest.get("started_at", "N/A")
-                st.markdown(f"**Recorded / Ingested:** `{created_ts}`")
-                st.markdown(f"**Status:** `{latest.get('status', 'ANALYZED')}`")
-            with col_m2:
-                st.markdown(f"**Model Name:** `{latest.get('model_name', 'HuBERT Stage B Extended v2')}`")
-                audio_file = latest.get("audio_filename") or (os.path.basename(latest["audio_path"]) if latest.get("audio_path") else "N/A")
-                st.markdown(f"**Audio File:** `{audio_file}`")
-
-        # Audio playback if audio file exists locally
-        if latest.get("audio_path") and os.path.exists(latest["audio_path"]):
-            st.audio(latest["audio_path"], format="audio/wav")
-
-        st.divider()
-
-        # Key Summary Metrics
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Duration", f"{latest['duration_sec']:.1f}s")
-        c2.metric("Total Windows (3s)", latest['total_windows'])
-        c3.metric("Fluent Windows", latest['fluent_windows'])
-        c4.metric("Session Fluency Ratio", f"{latest['fluency_ratio']*100:.1f}%")
-
-        # Disfluency Event Counts
-        e1, e2, e3 = st.columns(3)
-        e1.metric(f"Repetitions (Th: {info['thresholds'].get('Repetition', 0.77):.2f})", latest['repetition_count'])
-        e2.metric(f"Prolongations (Th: {info['thresholds'].get('Prolongation', 0.79):.2f})", latest['prolongation_count'])
-        e3.metric(f"Blocks (Th: {info['thresholds'].get('Block', 0.57):.2f})", latest['block_count'])
-
-        st.divider()
-
-        # Temporal Probability Timeline
-        st.subheader("Temporal Multi-Label Probability Timeline")
-        windows = latest.get("windows", [])
-        if windows:
-            fig_prob = create_probability_timeline(windows, info["thresholds"])
-            if fig_prob:
-                st.plotly_chart(fig_prob, use_container_width=True)
-        else:
-            st.caption("No window probability points stored for this session.")
-
-        # Window-Level Model Output Audit Table
-        st.subheader("Window-Level Model Output")
-        st.caption("Transparent audit log of 3.0s sliding-window multi-label predictions across the recording duration.")
-        if windows:
-            df_audit = create_window_audit_df(windows)
-            if not df_audit.empty:
-                st.dataframe(df_audit, use_container_width=True)
-        else:
-            st.info("No window records found for this session.")
-
-        st.divider()
-
-        # Aggregated Disfluency Events
-        st.subheader("Aggregated Disfluency Events")
-        events = latest.get("events", [])
-        if events:
-            df_ev = pd.DataFrame(events)
-            df_ev["duration_sec"] = (df_ev["end_time"] - df_ev["start_time"]).round(2)
-            st.dataframe(
-                df_ev[["event_type", "start_time", "end_time", "duration_sec", "confidence", "supporting_windows"]],
-                column_config={
-                    "event_type": "Disfluency Category",
-                    "start_time": "Start Time (s)",
-                    "end_time": "End Time (s)",
-                    "duration_sec": "Duration (s)",
-                    "confidence": "Avg Confidence",
-                    "supporting_windows": "Support Windows"
-                },
-                use_container_width=True
-            )
-            fig_ev = create_event_timeline(events)
-            if fig_ev:
-                st.plotly_chart(fig_ev, use_container_width=True)
-        else:
-            st.info("No stuttering events detected in this session.")
+        st.markdown("""
+        <div class="vf-empty-state">
+            <div class="vf-empty-title">No sessions analyzed yet</div>
+            <div class="vf-empty-desc">Upload a speech recording to get started with your first analysis.</div>
+        </div>
+        """, unsafe_allow_html=True)
 
 
 # =============================================================================
-# 3. Session History
+# PAGE 2 — ANALYZE
 # =============================================================================
-elif page == "Session History":
-    st.title("📊 Clinical Session History")
-    st.markdown("All continuous speech recordings evaluated and saved in local SQLite storage.")
+elif st.session_state["active_page"] == "Analyze":
+    st.markdown("""
+    <div class="app-header">
+        <h1 class="app-title">Analyze a Speech Session</h1>
+        <p class="app-subtitle">Upload a speech recording to analyze the session.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    sessions = get_all_sessions(limit=50)
+    uploaded_file = st.file_uploader(
+        "Upload a speech recording (WAV format, 16 kHz recommended)",
+        type=["wav"],
+        help="Upload a continuous speech recording (3 to 60 seconds)."
+    )
+
+    if uploaded_file is not None:
+        st.markdown(f"**Selected file:** `{uploaded_file.name}`")
+        st.audio(uploaded_file, format="audio/wav")
+
+        col_act, _ = st.columns([1.5, 4])
+        with col_act:
+            analyze_clicked = st.button("Analyze Session", type="primary", use_container_width=True)
+
+        if analyze_clicked:
+            with st.spinner("Analyzing session..."):
+                try:
+                    audio_bytes = uploaded_file.read()
+                    summary, windows, events = process_continuous_session(
+                        audio_source=audio_bytes,
+                        filename=uploaded_file.name,
+                        engine=engine
+                    )
+                    # Persist session atomically to SQLite
+                    save_session(summary, windows, events)
+
+                    # Store full object in session state
+                    full_session = dict(summary)
+                    full_session["windows"] = windows
+                    full_session["events"] = events
+                    st.session_state["last_analyzed_session"] = full_session
+
+                    st.success("Analysis complete.")
+                except Exception as ex:
+                    st.error("We couldn't analyze this recording. Please check the file and try again.")
+                    with st.expander("Technical details"):
+                        st.exception(ex)
+
+    # Display Analysis Result if available in session_state
+    if st.session_state.get("last_analyzed_session"):
+        st.markdown("### Session Analysis Result")
+        render_session_report(st.session_state["last_analyzed_session"], engine)
+
+    # Secondary Expandable Section: ESP32 Hardware
+    st.markdown("<br>", unsafe_allow_html=True)
+    with st.expander("▸ ESP32 Hardware Capture"):
+        st.markdown("""
+        VoxFlow can also receive speech recordings captured using the **ESP32 + INMP441** hardware through the Python serial bridge.
+        
+        **To run hardware audio capture and send it for analysis:**
+        ```bash
+        python tools/esp32_serial_bridge.py --port COM8
+        ```
+        *Run the bridge from a terminal. Once the capture is uploaded and analyzed, the session will automatically appear in VoxFlow.*
+        
+        **To save the captured WAV locally without sending it for analysis:**
+        ```bash
+        python tools/esp32_serial_bridge.py --port COM8 --skip-api
+        ```
+        """)
+
+
+# =============================================================================
+# PAGE 3 — SESSIONS
+# =============================================================================
+elif st.session_state["active_page"] == "Sessions":
+    st.markdown("""
+    <div class="app-header">
+        <h1 class="app-title">Sessions</h1>
+        <p class="app-subtitle">Review previously analyzed speech sessions.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    sessions = get_all_sessions(limit=100)
 
     if not sessions:
-        st.info("No sessions recorded in the database yet.")
+        st.markdown("""
+        <div class="vf-empty-state">
+            <div class="vf-empty-title">No sessions have been analyzed yet</div>
+            <div class="vf-empty-desc">Record or upload a speech session to see it listed here.</div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("Analyze a Session", type="primary"):
+            st.session_state["active_page"] = "Analyze"
+            st.rerun()
     else:
-        df_sessions = pd.DataFrame(sessions)
-        st.dataframe(
-            df_sessions[[
-                "id", "created_at", "duration_sec", "fluency_ratio",
-                "repetition_count", "prolongation_count", "block_count", "status"
-            ]],
-            column_config={
-                "id": "Session ID",
-                "created_at": "Timestamp",
-                "duration_sec": "Duration (s)",
-                "fluency_ratio": st.column_config.ProgressColumn("Fluency Ratio", min_value=0.0, max_value=1.0, format="%.2f"),
-                "repetition_count": "Repetitions",
-                "prolongation_count": "Prolongations",
-                "block_count": "Blocks",
-                "status": "State"
-            },
-            use_container_width=True
+        # Format table rows cleanly
+        table_rows = []
+        session_options = {}
+        
+        for s in sessions:
+            sid = s["id"]
+            created = format_timestamp(s.get("created_at") or s.get("started_at"))
+            dur = float(s.get("duration_sec", 0.0))
+            fluency = round(float(s.get("fluency_ratio", 1.0)) * 100, 1)
+            rep = int(s.get("repetition_count", 0))
+            pro = int(s.get("prolongation_count", 0))
+            blk = int(s.get("block_count", 0))
+            
+            label = f"{created} · {dur:.0f}s · {fluency:.0f}% Fluency"
+            session_options[label] = sid
+
+            table_rows.append({
+                "Date": created,
+                "Duration": f"{dur:.1f}s",
+                "Fluency": f"{fluency:.0f}%",
+                "Repetition": rep,
+                "Prolongation": pro,
+                "Block": blk
+            })
+
+        df_sessions = pd.DataFrame(table_rows)
+        st.dataframe(df_sessions, use_container_width=True, hide_index=True)
+
+        st.markdown("### Inspect Session")
+        
+        # Determine initial selection index
+        default_index = 0
+        if "selected_session_id" in st.session_state:
+            target_id = st.session_state["selected_session_id"]
+            for idx, (lbl, sid) in enumerate(session_options.items()):
+                if sid == target_id:
+                    default_index = idx
+                    break
+
+        selected_label = st.selectbox(
+            "Select session to inspect:",
+            options=list(session_options.keys()),
+            index=default_index,
+            label_visibility="collapsed"
         )
 
-        st.subheader("Inspect Specific Session")
-        selected_id = st.selectbox("Select Session ID to inspect:", [s["id"] for s in sessions])
-        if selected_id:
-            details = get_session_details(selected_id)
-            if details:
-                st.markdown(f"**Session:** `{selected_id}` | Duration: `{details['duration_sec']:.1f}s` | Fluency: `{details['fluency_ratio']*100:.1f}%`")
-                if details.get("audio_path") and os.path.exists(details["audio_path"]):
-                    st.audio(details["audio_path"], format="audio/wav")
-
-                # Show Probability Timeline
-                if details.get("windows"):
-                    st.markdown("##### Temporal Probability Flow")
-                    fig_det = create_probability_timeline(details["windows"], info["thresholds"])
-                    if fig_det:
-                        st.plotly_chart(fig_det, use_container_width=True)
-
-                if details.get("events"):
-                    st.markdown("##### Aggregated Events")
-                    st.dataframe(pd.DataFrame(details["events"]), use_container_width=True)
-                    fig_ev_det = create_event_timeline(details["events"])
-                    if fig_ev_det:
-                        st.plotly_chart(fig_ev_det, use_container_width=True)
+        if selected_label:
+            selected_id = session_options[selected_label]
+            session_details = get_session_details(selected_id)
+            if session_details:
+                render_session_report(session_details, engine)
+            else:
+                st.warning("Could not load details for the selected session.")
 
 
 # =============================================================================
-# 4. Fluency Trends
+# PAGE 4 — TRENDS
 # =============================================================================
-elif page == "Fluency Trends":
-    st.title("📈 Speech Fluency & Longitudinal Trends")
-    st.markdown("Tracks fluency progression across recorded sessions over time.")
+elif st.session_state["active_page"] == "Trends":
+    st.markdown("""
+    <div class="app-header">
+        <h1 class="app-title">Fluency Trends</h1>
+        <p class="app-subtitle">Track fluency across recorded sessions.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    sessions = get_all_sessions(limit=50)
+    sessions = get_all_sessions(limit=100)
 
     if len(sessions) < 2:
-        st.info("Record at least 2 sessions to visualize longitudinal fluency trends.")
+        st.markdown("""
+        <div class="vf-empty-state">
+            <div class="vf-empty-title">Not enough session data</div>
+            <div class="vf-empty-desc">Record at least 2 sessions to see your fluency trends over time.</div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("Analyze a Session", type="primary"):
+            st.session_state["active_page"] = "Analyze"
+            st.rerun()
     else:
-        df_trend = pd.DataFrame(sessions).sort_values("created_at")
-        df_trend["Session Number"] = range(1, len(df_trend) + 1)
-        df_trend["Fluency %"] = (df_trend["fluency_ratio"] * 100).round(1)
+        # Sort chronologically for trends
+        df_trends = pd.DataFrame(sessions).sort_values("created_at")
+        df_trends["Session Index"] = [f"Session {i+1}" for i in range(len(df_trends))]
+        df_trends["Fluency %"] = (df_trends["fluency_ratio"] * 100).round(1)
+        df_trends["Date"] = df_trends["created_at"].apply(format_timestamp)
 
-        fig_trend = px.line(
-            df_trend,
-            x="Session Number",
+        # Overview Stats
+        avg_fluency = df_trends["Fluency %"].mean()
+        tot_rep = df_trends["repetition_count"].sum()
+        tot_pro = df_trends["prolongation_count"].sum()
+        tot_blk = df_trends["block_count"].sum()
+        tot_events = tot_rep + tot_pro + tot_blk
+
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.markdown(f"""
+            <div class="vf-metric-card primary">
+                <div class="vf-metric-label">Total Sessions</div>
+                <div class="vf-metric-val">{len(df_trends)}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with col2:
+            st.markdown(f"""
+            <div class="vf-metric-card">
+                <div class="vf-metric-label">Average Fluency</div>
+                <div class="vf-metric-val fluency">{avg_fluency:.0f}%</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with col3:
+            st.markdown(f"""
+            <div class="vf-metric-card">
+                <div class="vf-metric-label">Total Detected Events</div>
+                <div class="vf-metric-val">{tot_events}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with col4:
+            st.markdown(f"""
+            <div class="vf-metric-card">
+                <div class="vf-metric-label">Latest Fluency</div>
+                <div class="vf-metric-val fluency">{df_trends['Fluency %'].iloc[-1]:.0f}%</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # Chart 1: Fluency over time
+        st.markdown("#### Fluency over time")
+        fig_fluency = px.line(
+            df_trends,
+            x="Session Index",
             y="Fluency %",
             markers=True,
-            title="Session Fluency Ratio Progression",
-            hover_data=["id", "created_at"]
+            hover_data={"Date": True, "Fluency %": True, "Session Index": False}
         )
-        fig_trend.update_layout(yaxis_range=[0, 105], height=380)
-        st.plotly_chart(fig_trend, use_container_width=True)
+        fig_fluency.update_traces(
+            line=dict(color="#059669", width=3),
+            marker=dict(size=8, color="#059669", line=dict(color="#FFFFFF", width=2))
+        )
+        fig_fluency.update_layout(
+            xaxis_title="",
+            yaxis_title="Fluency (%)",
+            yaxis_range=[0, 105],
+            plot_bgcolor="#FFFFFF",
+            paper_bgcolor="#FFFFFF",
+            margin=dict(l=20, r=20, t=20, b=20),
+            height=300
+        )
+        st.plotly_chart(fig_fluency, use_container_width=True)
 
-        st.subheader("Disfluency Breakdown Across Sessions")
-        fig_bar = px.bar(
-            df_trend,
-            x="Session Number",
-            y=["repetition_count", "prolongation_count", "block_count"],
-            title="Event Frequency per Session",
+        # Chart 2: Disfluency Events breakdown
+        st.markdown("#### Disfluency Events by Category")
+        
+        fig_events = go.Figure()
+        fig_events.add_trace(go.Bar(
+            name="Repetition",
+            x=df_trends["Session Index"],
+            y=df_trends["repetition_count"],
+            marker_color=EVENT_COLORS["Repetition"]
+        ))
+        fig_events.add_trace(go.Bar(
+            name="Prolongation",
+            x=df_trends["Session Index"],
+            y=df_trends["prolongation_count"],
+            marker_color=EVENT_COLORS["Prolongation"]
+        ))
+        fig_events.add_trace(go.Bar(
+            name="Block",
+            x=df_trends["Session Index"],
+            y=df_trends["block_count"],
+            marker_color=EVENT_COLORS["Block"]
+        ))
+        fig_events.update_layout(
             barmode="group",
-            labels={"value": "Detected Event Count", "variable": "Disfluency Category"}
+            xaxis_title="",
+            yaxis_title="Event Count",
+            plot_bgcolor="#FFFFFF",
+            paper_bgcolor="#FFFFFF",
+            margin=dict(l=20, r=20, t=20, b=20),
+            height=300,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
         )
-        st.plotly_chart(fig_bar, use_container_width=True)
-
-
-# =============================================================================
-# 5. Model Information
-# =============================================================================
-elif page == "Model Information":
-    st.title("🔬 Model Architecture & Locked Benchmark")
-    st.markdown("Detailed specifications of the active production model and validation-calibrated decision thresholds.")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.subheader("Active Model: HuBERT_D")
-        st.markdown(f"- **Architecture:** `HuBERT Multi-Label Classifier`")
-        st.markdown(f"- **Pretrained Backbone:** `facebook/hubert-base-ls960` (12 transformer layers, 768 dim)")
-        st.markdown(f"- **Tuned Layers:** Final 2 transformer encoder layers (layers 10 and 11)")
-        st.markdown(f"- **Classification Head:** `Linear(768, 256) -> ReLU -> Dropout(0.1) -> Linear(256, 3)`")
-        st.markdown(f"- **Output Representation:** 3 independent sigmoid probabilities")
-        st.markdown(f"- **Device In Use:** `{info['device'].upper()}`")
-
-    with col2:
-        st.subheader("Locked Decision Thresholds")
-        st.markdown("""
-        Thresholds were optimized exclusively on the 6,632-clip validation split via independent grid search to maximize per-class F1 score:
-        """)
-        st.markdown(f"- **Repetition:** `{info['thresholds'].get('Repetition', 0.77):.2f}` *(Prevents false alarms on fluent lexical restarts)*")
-        st.markdown(f"- **Prolongation:** `{info['thresholds'].get('Prolongation', 0.79):.2f}` *(High precision on sustained phonemes)*")
-        st.markdown(f"- **Block:** `{info['thresholds'].get('Block', 0.57):.2f}` *(Balanced detection on silent tense pauses)*")
-
-    st.divider()
-    st.subheader("Locked Test Set Benchmark Comparison (6,812 Clips)")
-    bench_data = [
-        {"Model": "Model 1: LinearSVC Baseline", "Features": "162 MFCC + Stats", "Macro F1": 0.3121, "Mean PR-AUC": 0.2545, "Mean ROC-AUC": 0.6633, "Status": "Baseline"},
-        {"Model": "Model 3: Wav2Vec2 Mean+Max Stage C", "Features": "facebook/wav2vec2-base", "Macro F1": 0.4498, "Mean PR-AUC": 0.4288, "Mean ROC-AUC": 0.8020, "Status": "Competitor"},
-        {"Model": "Model 2: HuBERT_D (Selected Final)", "Features": "facebook/hubert-base-ls960", "Macro F1": 0.4599, "Mean PR-AUC": 0.4532, "Mean ROC-AUC": 0.8099, "Status": "Winning Production Model"}
-    ]
-    st.dataframe(pd.DataFrame(bench_data), use_container_width=True)
-
+        st.plotly_chart(fig_events, use_container_width=True)
