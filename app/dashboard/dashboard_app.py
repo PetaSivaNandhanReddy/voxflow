@@ -611,6 +611,15 @@ elif st.session_state["active_page"] == "Analyze":
                         filename=uploaded_file.name,
                         engine=engine
                     )
+                    # Persist uploaded WAV to configured audio upload directory
+                    session_id = summary.get("session_id")
+                    audio_dir = pathlib.Path(SESSION_CONFIG["audio_upload_dir"])
+                    audio_dir.mkdir(parents=True, exist_ok=True)
+                    saved_audio_path = audio_dir / f"{session_id}.wav"
+                    with open(saved_audio_path, "wb") as f:
+                        f.write(audio_bytes)
+                    summary["audio_path"] = str(saved_audio_path)
+
                     # Persist session atomically to SQLite
                     save_session(summary, windows, events)
 
@@ -618,6 +627,7 @@ elif st.session_state["active_page"] == "Analyze":
                     full_session = dict(summary)
                     full_session["windows"] = windows
                     full_session["events"] = events
+                    full_session["audio_path"] = str(saved_audio_path)
                     st.session_state["last_analyzed_session"] = full_session
                     st.session_state["analyzed_file_key"] = file_key
 

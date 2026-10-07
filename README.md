@@ -104,21 +104,21 @@ VoxFlow is configured for an **ESP32 Dev Module** paired with an **INMP441 I2S d
 | **SD / DATA** | **GPIO 32** | I2S Serial Data Out |
 | **L/R** | **GND** | Channel Select (Ground = Left / Mono) |
 
-### Phase-1 Hardware Prototype Workflow
+### Hardware Prototype Workflow
 
-The Phase-1 hardware pipeline connects the physical ESP32 microcontroller directly to the VoxFlow backend:
+The hardware pipeline connects the physical ESP32 microcontroller directly to the VoxFlow backend:
 
 ```text
 ESP32 Dev Module + INMP441
        │ (16 kHz, 16-bit Mono PCM over UART @ 460,800 Baud / COM8)
        ▼
 Python Serial Bridge (`tools/esp32_serial_bridge.py`)
-       │ (Saves local 10-second WAV: 320,000 bytes PCM)
+       │ (Saves local WAV: 3.0s - 60.0s PCM)
        ▼
 VoxFlow REST API (`POST /api/v1/session/start`, `/audio`, `/stop`, `/analyze`)
        │
        ▼
-HuBERT-D Deep Learning Inference (8 sliding 3.0s windows, 1.0s step)
+HuBERT-D Deep Learning Inference (Sliding 3.0s windows, 1.0s step)
        │
        ▼
 Temporal Event Aggregation (Merges adjacent detections, gap <= 1.5s)
@@ -127,7 +127,7 @@ Temporal Event Aggregation (Merges adjacent detections, gap <= 1.5s)
 SQLite Database Persistence (`app/voxflow.db`)
        │
        ▼
-Streamlit Clinical Dashboard (`http://localhost:8501`)
+Streamlit Dashboard (`http://localhost:8501`)
 ```
 
 ### Running the Hardware Capture
@@ -142,13 +142,11 @@ Streamlit Clinical Dashboard (`http://localhost:8501`)
    python tools/esp32_serial_bridge.py --port COM8
    ```
 
-### Current Phase-1 Scope & Boundaries
-- **Control:** Laptop-controlled triggering via the Python serial bridge (`PING`/`PONG` handshake $\to$ `START` $\to$ exact 320,000 byte binary stream $\to$ `DONE`).
-- **Duration:** Current Phase-1 recording duration is fixed at **10 seconds** (320,000 bytes PCM).
+### Hardware Implementation Status & Scope
+- **Physical START/STOP Buttons:** Implemented in the current ESP32 firmware (GPIO27 START / GPIO33 STOP) and supported in the serial bridge (`--physical-buttons`). Physical validation is pending the hardware integration test.
+- **Status LED:** Implemented in the current ESP32 firmware (GPIO4). Physical validation is pending.
+- **Session Length & Dynamic Capture:** The current firmware and serial bridge support dynamic sessions up to 60 seconds (dynamic `AUDIO_BYTES` header). Full physical 60-second capture validation is pending.
 - **Serial Port:** Defaults to `COM8` (configurable via `--port` argument or `VOXFLOW_SERIAL_PORT` environment variable).
-- **Physical Controls:** Physical hardware START/STOP buttons are **not implemented yet** (scheduled for Phase 2).
-- **Status Indicators:** Physical hardware LED indicators are **not implemented yet** (scheduled for Phase 2).
-- **Session Length:** 60-second continuous streaming is **not implemented yet**.
 - **Firmware Location:** Arduino sketch located at `hardware/esp32_voxflow/voxflow_esp32.ino`.
 
 ---
@@ -261,7 +259,7 @@ python -m unittest discover -s tests -p "test_*.py"
 ## 8. Limitations & Scope
 
 - **Research Prototype:** VoxFlow is an automated speech fluency research prototype designed for longitudinal tracking and progress monitoring. It is **not** a certified medical diagnostic device and does not make clinical diagnoses.
-- **Phase-1 Hardware Validation:** Physical testing on the real ESP32 Dev Module + INMP441 microphone has been successfully completed, including 10-second PCM capture, WAV generation, REST API upload, HuBERT-D inference, SQLite persistence, and Streamlit visualization. Physical START/STOP buttons, LED status indicators, and longer 60-second hardware-controlled sessions remain planned for Phase 2.
+- **Hardware Implementation Status:** Physical testing of basic 10-second PCM capture and REST upload has been completed. The current ESP32 firmware and serial bridge now implement physical START/STOP buttons (GPIO27 / GPIO33), status LED (GPIO4), and dynamic capture up to 60 seconds; full physical validation of these expanded hardware capabilities will occur during upcoming hardware integration testing.
 - **Acoustic Environment Sensitivity:** Detection accuracy depends on microphone proximity, ambient background noise, and individual speaker idiosyncratic speech patterns.
 - **Session-Based Scope:** The system analyzes standard continuous recording intervals (30–60 seconds) rather than claiming zero-latency instantaneous diagnosis.
 

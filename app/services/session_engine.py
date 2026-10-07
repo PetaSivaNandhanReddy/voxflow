@@ -101,6 +101,14 @@ def validate_and_load_session_audio(audio_path_or_bytes, sample_rate=16000):
             f"{SESSION_CONFIG['min_duration_sec']:.1f}s window."
         )
 
+    # Maximum duration check (enforce configured standard session upper bound)
+    max_dur = SESSION_CONFIG.get("max_standard_session_duration_sec", 60.0)
+    if duration_sec > max_dur:
+        raise AudioValidationError(
+            f"Session duration ({duration_sec:.2f}s) exceeds the maximum allowed "
+            f"duration of {max_dur:.1f}s."
+        )
+
     # Check for complete silence
     rms = float(np.sqrt(np.mean(audio ** 2)))
     if rms < 1e-4:
