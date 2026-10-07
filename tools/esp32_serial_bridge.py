@@ -3,18 +3,21 @@
 VoxFlow ESP32 serial bridge.
 
 Supports both:
-  1. Serial-start mode (default, backward-compatible automated capture)
+  1. Serial-start mode (default, automated capture trigger)
   2. Physical-buttons mode (--physical-buttons, waits for ESP32 GPIO27 START)
 
-Phase 2 flow:
-    ESP32 + INMP441
-        -> USB serial (e.g. COM8)
-        -> Dynamic PCM capture (3.0s - 60.0s via physical STOP / serial STOP / timeout)
+VXF1 Continuous Streaming Flow:
+    ESP32 + INMP441 (Producer)
+        -> Bounded Ring Buffer
+        -> USB Serial @ 460800 baud (Consumer)
+        -> Python Bridge (VXF1 Framed Stream Receiver)
+        -> Verified Continuous PCM (3.0s - 60.0s via physical STOP / serial STOP / timeout)
         -> WAV file
         -> existing VoxFlow REST API
         -> existing HuBERT/session pipeline
 
 Binary audio is NEVER parsed with readline().
+Every binary frame is validated for Magic, Sequence, Length, and CRC32.
 """
 
 from __future__ import annotations
@@ -22,11 +25,14 @@ from __future__ import annotations
 import argparse
 import io
 import os
+import struct
 import sys
 import time
 import wave
+import zlib
 from datetime import datetime
 from pathlib import Path
+from typing import BinaryIO, Tuple, Union
 
 import requests
 import serial
@@ -40,8 +46,12 @@ DEFAULT_USER = os.getenv("VOXFLOW_USER_ID", "default_user")
 
 READLINE_TIMEOUT = 8.0
 CAPTURE_HEADER_TIMEOUT = 75.0
-PCM_TIMEOUT = 30.0
+FRAME_TIMEOUT = 10.0
 ANALYZE_TIMEOUT = 1800.0
+
+FRAME_HEADER_MAGIC = b"VXF1"
+FRAME_HEADER_SIZE = 16  # 4 bytes magic + 4 bytes seq + 4 bytes length + 4 bytes crc32
+FRAME_HEADER_FORMAT = "<4sIII"
 
 
 class BridgeError(RuntimeError):
@@ -113,31 +123,115 @@ def wait_for_prefix(ser: serial.Serial, prefix: str, timeout: float) -> str:
     raise BridgeError(f"Timed out waiting for a line beginning with '{prefix}'.")
 
 
-def read_exact(ser: serial.Serial, size: int, timeout: float) -> bytes:
-    """Read exactly size binary bytes. No line parsing is used here."""
+def read_exact(stream: Union[serial.Serial, BinaryIO], size: int, timeout: float) -> bytes:
+    """Read exactly size binary bytes from serial or stream without line parsing."""
+    if size == 0:
+        return b""
+
     data = bytearray()
     deadline = time.monotonic() + timeout
-    last_reported_bucket = -1
 
     while len(data) < size:
         if time.monotonic() >= deadline:
             raise BridgeError(
-                f"Timed out while receiving audio: {len(data):,}/{size:,} bytes."
+                f"Timed out while receiving binary data: {len(data):,}/{size:,} bytes."
             )
 
         remaining = size - len(data)
-        chunk = ser.read(min(16384, remaining))
+        chunk = stream.read(min(16384, remaining))
 
         if chunk:
             data.extend(chunk)
-
-            bucket = (len(data) * 20) // size
-            if bucket != last_reported_bucket and bucket <= 20:
-                last_reported_bucket = bucket
-                percent = (len(data) / size) * 100.0
-                print(f"       Audio: {len(data):,}/{size:,} bytes ({percent:5.1f}%)")
+        else:
+            time.sleep(0.001)
 
     return bytes(data)
+
+
+def receive_vxf1_stream(
+    stream: Union[serial.Serial, BinaryIO],
+    frame_timeout: float = FRAME_TIMEOUT,
+    progress_callback: bool = True,
+) -> Tuple[bytes, int]:
+    """
+    Receive and validate continuous VXF1 binary frames until zero-length end frame.
+
+    Returns:
+        (accumulated_pcm_bytes, packet_count)
+    """
+    expected_sequence = 0
+    pcm_buffer = bytearray()
+    packet_count = 0
+    last_reported_mb = 0.0
+
+    while True:
+        # 1. Read 16-byte frame header
+        header_bytes = read_exact(stream, FRAME_HEADER_SIZE, frame_timeout)
+        if len(header_bytes) != FRAME_HEADER_SIZE:
+            raise BridgeError(
+                f"Incomplete frame header: received {len(header_bytes)}/{FRAME_HEADER_SIZE} bytes."
+            )
+
+        magic, seq, payload_length, expected_crc = struct.unpack(
+            FRAME_HEADER_FORMAT, header_bytes
+        )
+
+        # 2. Validate magic bytes
+        if magic != FRAME_HEADER_MAGIC:
+            raise BridgeError(
+                f"Invalid frame magic: expected {FRAME_HEADER_MAGIC!r}, got {magic!r}"
+            )
+
+        # 3. Validate sequence number (detect loss, duplication, reordering)
+        if seq != expected_sequence:
+            raise BridgeError(
+                f"Sequence mismatch: expected sequence {expected_sequence}, got {seq}"
+            )
+
+        # 4. Handle End-Of-Stream zero-length frame
+        if payload_length == 0:
+            if expected_crc != 0:
+                raise BridgeError(
+                    f"Zero-length final frame contained non-zero CRC32: {expected_crc:#010x}"
+                )
+            # Valid zero-length terminal frame reached
+            break
+
+        # 5. Validate payload constraints
+        if payload_length > 65536 or payload_length % 2 != 0:
+            raise BridgeError(
+                f"Invalid frame payload length on sequence {seq}: {payload_length} bytes"
+            )
+
+        # 6. Read exact binary payload
+        payload = read_exact(stream, payload_length, frame_timeout)
+        if len(payload) != payload_length:
+            raise BridgeError(
+                f"Incomplete payload for frame {seq}: received {len(payload)}/{payload_length} bytes."
+            )
+
+        # 7. Validate CRC32
+        actual_crc = zlib.crc32(payload) & 0xFFFFFFFF
+        if actual_crc != expected_crc:
+            raise BridgeError(
+                f"CRC32 mismatch on frame {seq}: expected {expected_crc:#010x}, calculated {actual_crc:#010x}"
+            )
+
+        # 8. Append validated PCM payload
+        pcm_buffer.extend(payload)
+        packet_count += 1
+        expected_sequence += 1
+
+        if progress_callback:
+            curr_mb = len(pcm_buffer) / (1024 * 1024)
+            if curr_mb - last_reported_mb >= 0.25:
+                last_reported_mb = curr_mb
+                dur = len(pcm_buffer) / (16000 * 2)
+                print(
+                    f"       Streaming: {len(pcm_buffer):,} bytes ({dur:5.2f}s, {packet_count} packets)"
+                )
+
+    return bytes(pcm_buffer), packet_count
 
 
 def write_wav(pcm_bytes: bytes, sample_rate: int, output_path: Path) -> None:
@@ -190,10 +284,14 @@ def run_bridge(
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_path = output_dir / f"esp32_{timestamp}.wav"
 
-    mode_label = "Physical Buttons (GPIO27 START / GPIO33 STOP)" if physical_buttons else "Serial-Start"
+    mode_label = (
+        "Physical Buttons (GPIO27 START / GPIO33 STOP)"
+        if physical_buttons
+        else "Serial-Start"
+    )
 
     print("=" * 64)
-    print("VoxFlow ESP32 Serial Bridge")
+    print("VoxFlow ESP32 Real-Time Streaming Bridge (VXF1)")
     print(f"Mode     : {mode_label}")
     print(f"COM port : {port}")
     print(f"Baud     : {baud}")
@@ -266,26 +364,27 @@ def run_bridge(
             # ESP32 Capture initiation
             # ---------------------------------------------------------
             if physical_buttons:
-                print("[3/7] Waiting for physical START button...")
+                print("[3/7] Waiting for physical START button (GPIO27)...")
             else:
                 print("[3/7] Sending START to ESP32...")
                 ser.write(b"START\n")
                 ser.flush()
 
-            # Wait for RECORDING line with extended timeout (firmware records up to 60s)
+            # Wait for RECORDING control header
             wait_for_exact_line(ser, "RECORDING", CAPTURE_HEADER_TIMEOUT)
 
-            bytes_line = wait_for_prefix(ser, "AUDIO_BYTES=", READLINE_TIMEOUT)
             sample_rate_line = wait_for_prefix(ser, "SAMPLE_RATE=", READLINE_TIMEOUT)
             format_line = wait_for_prefix(ser, "FORMAT=", READLINE_TIMEOUT)
+            stream_line = wait_for_prefix(ser, "STREAM=", READLINE_TIMEOUT)
+            wait_for_exact_line(ser, "DATA_START", READLINE_TIMEOUT)
 
             try:
-                expected_bytes = int(bytes_line.split("=", 1)[1])
                 sample_rate = int(sample_rate_line.split("=", 1)[1])
             except (ValueError, IndexError) as exc:
-                raise BridgeError("Invalid ESP32 audio metadata.") from exc
+                raise BridgeError("Invalid ESP32 sample rate metadata.") from exc
 
             audio_format = format_line.split("=", 1)[1]
+            stream_proto = stream_line.split("=", 1)[1]
 
             if audio_format != "PCM_S16LE_MONO":
                 raise BridgeError(f"Unsupported ESP32 audio format: {audio_format}")
@@ -293,26 +392,17 @@ def run_bridge(
             if sample_rate != 16000:
                 raise BridgeError(f"Unexpected sample rate from ESP32: {sample_rate}")
 
-            if expected_bytes <= 0 or expected_bytes % 2 != 0:
-                raise BridgeError(f"Invalid audio byte count from ESP32: {expected_bytes}")
-
-            duration = expected_bytes / sample_rate / 2.0
-            if duration < 3.0 or duration > 60.0:
-                raise BridgeError(
-                    f"Unexpected recording duration from ESP32: {duration:.2f}s "
-                    "(must be between 3.0s and 60.0s)"
-                )
+            if stream_proto != "VXF1":
+                raise BridgeError(f"Unsupported stream protocol from ESP32: {stream_proto}")
 
             print(
-                f"[4/7] Receiving binary PCM: {expected_bytes:,} bytes "
-                f"({duration:.2f}s)..."
+                "[4/7] Receiving continuous audio stream (VXF1 framing @ 460800 baud)..."
             )
 
-            # CRITICAL: From this point until exactly expected_bytes are
-            # received, serial data is binary PCM. Never call readline().
-            pcm_bytes = read_exact(ser, expected_bytes, PCM_TIMEOUT)
+            # CRITICAL: Stream receiver parses binary frames directly without readline()
+            pcm_bytes, packet_count = receive_vxf1_stream(ser, FRAME_TIMEOUT)
 
-            # We are now exactly at the text/binary boundary again.
+            # We are now at the text boundary after the final zero-length frame
             wait_for_exact_line(ser, "DONE", READLINE_TIMEOUT)
 
     except SerialException as exc:
@@ -322,13 +412,34 @@ def run_bridge(
         ) from exc
 
     # -------------------------------------------------------------
+    # Validate final audio stream constraints
+    # -------------------------------------------------------------
+    if len(pcm_bytes) % 2 != 0:
+        raise BridgeError(f"Odd PCM byte count received: {len(pcm_bytes)} bytes.")
+
+    duration = len(pcm_bytes) / (sample_rate * 2)
+    if duration < 3.0 or duration > 60.0:
+        raise BridgeError(
+            f"Recording duration out of bounds: {duration:.2f}s "
+            "(must be between 3.0s and 60.0s)"
+        )
+
+    # -------------------------------------------------------------
     # Local WAV is always produced, even when API upload is enabled.
     # -------------------------------------------------------------
     write_wav(pcm_bytes, sample_rate, output_path)
 
-    print(f"[5/7] WAV saved: {output_path}")
-    print(f"       PCM bytes : {len(pcm_bytes):,}")
-    print(f"       Duration   : {len(pcm_bytes) / sample_rate / 2:.2f}s")
+    print()
+    print("=" * 64)
+    print("STREAM RECONSTRUCTION SUMMARY")
+    print(f"Packets received : {packet_count}")
+    print(f"PCM bytes        : {len(pcm_bytes):,}")
+    print(f"Duration         : {duration:.2f} sec")
+    print("Sequence errors  : 0")
+    print("CRC errors       : 0")
+    print("Stream errors    : 0")
+    print(f"WAV saved        : {output_path}")
+    print("=" * 64)
 
     # -------------------------------------------------------------
     # Existing VoxFlow REST lifecycle: audio -> stop -> analyze.
@@ -462,4 +573,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
 

@@ -4,9 +4,10 @@
 
 // =====================================================
 // VoxFlow ESP32 + INMP441
-// Phase 2: Hardware Control with Physical Buttons & Status LED
-// Supports physical START (GPIO27), STOP (GPIO33), Status LED (GPIO4),
-// serial START/STOP/PING commands, dynamic AUDIO_BYTES, and safe protocol framing.
+// True Real-Time Continuous Streaming Firmware (VXF1)
+// Supports continuous sessions from 3s up to 60s
+// Physical START (GPIO27), STOP (GPIO33), Status LED (GPIO4),
+// Bounded producer-consumer ring buffer, 460800 baud binary framing.
 // =====================================================
 
 #define I2S_PORT I2S_NUM_0
@@ -23,14 +24,13 @@
 
 // Audio settings
 #define SAMPLE_RATE 16000
-#define BUFFER_SIZE 1024
-#define MAX_RECORD_SECONDS 60
+#define SAMPLES_PER_FRAME 1024
 #define BYTES_PER_SAMPLE 2
+#define FRAME_PAYLOAD_BYTES (SAMPLES_PER_FRAME * BYTES_PER_SAMPLE) // 2048 bytes (64ms of audio)
+#define MAX_RECORD_SECONDS 60
 
-// Chunked Audio Buffer Settings
-// 4096 samples = 8192 bytes = 0.256s per chunk
-#define CHUNK_SAMPLES 4096
-#define MAX_CHUNKS 240 // Up to 61.44 seconds (240 * 4096 = 983,040 samples)
+// Ring Buffer: 16 slots * 2048 bytes = 32,768 bytes (~1.024s buffer cushion)
+#define RING_BUFFER_SLOTS 16
 
 // Serial protocol
 #define SERIAL_BAUD 460800
@@ -41,18 +41,58 @@
 // Debounce timing
 #define DEBOUNCE_DELAY_MS 50
 
+// Protocol Magic: "VXF1"
+static const uint8_t VXF_MAGIC[4] = {'V', 'X', 'F', '1'};
+
+#pragma pack(push, 1)
+struct FrameHeader {
+  uint8_t magic[4];
+  uint32_t sequence;
+  uint32_t payloadLength;
+  uint32_t crc32;
+};
+#pragma pack(pop)
+
+struct AudioFrame {
+  int16_t samples[SAMPLES_PER_FRAME];
+  size_t sampleCount;
+};
+
+static AudioFrame audioFramePool[RING_BUFFER_SLOTS];
+static QueueHandle_t freeQueue = NULL;
+static QueueHandle_t readyQueue = NULL;
+static TaskHandle_t captureTaskHandle = NULL;
+
 static bool i2sReady = false;
-static bool recording = false;
+static volatile bool isRecording = false;
+static volatile bool stopRequested = false;
+static volatile bool streamError = false;
+static const char* volatile streamErrorCode = NULL;
 
-// Segmented audio capture buffer
-static int16_t* chunkPointers[MAX_CHUNKS];
-static uint32_t numAllocatedChunks = 0;
-static uint32_t maxBufferSamples = 0;
+// CRC32 table for fast IEEE 802.3 polynomial calculation
+static uint32_t crcTable[256];
 
-inline void writeAudioSample(uint32_t index, int16_t sample) {
-  uint32_t c = index / CHUNK_SAMPLES;
-  uint32_t offset = index % CHUNK_SAMPLES;
-  chunkPointers[c][offset] = sample;
+void initCrcTable() {
+  for (uint32_t i = 0; i < 256; ++i) {
+    uint32_t c = i;
+    for (int j = 0; j < 8; ++j) {
+      if (c & 1) {
+        c = 0xEDB88320UL ^ (c >> 1);
+      } else {
+        c >>= 1;
+      }
+    }
+    crcTable[i] = c;
+  }
+}
+
+uint32_t calculateCRC32(const uint8_t* data, size_t length) {
+  uint32_t crc = 0xFFFFFFFFUL;
+  for (size_t i = 0; i < length; ++i) {
+    uint8_t idx = (uint8_t)((crc ^ data[i]) & 0xFF);
+    crc = crcTable[idx] ^ (crc >> 8);
+  }
+  return crc ^ 0xFFFFFFFFUL;
 }
 
 // =====================================================
@@ -67,36 +107,6 @@ void fatalError(const char* code) {
   while (true) {
     delay(1000);
   }
-}
-
-// =====================================================
-// MEMORY BUFFER INITIALIZATION
-// =====================================================
-
-bool initAudioBuffer() {
-  numAllocatedChunks = 0;
-  bool usePSRAM = psramInit();
-
-  for (uint32_t i = 0; i < MAX_CHUNKS; ++i) {
-    int16_t* ptr = nullptr;
-    if (usePSRAM) {
-      ptr = (int16_t*)ps_malloc(CHUNK_SAMPLES * sizeof(int16_t));
-    }
-    if (ptr == nullptr) {
-      // Allocate from internal DRAM if safe system margin (16KB) remains
-      if (heap_caps_get_free_size(MALLOC_CAP_8BIT) > (CHUNK_SAMPLES * sizeof(int16_t) + 16384)) {
-        ptr = (int16_t*)malloc(CHUNK_SAMPLES * sizeof(int16_t));
-      }
-    }
-    if (ptr == nullptr) {
-      break;
-    }
-    chunkPointers[numAllocatedChunks++] = ptr;
-  }
-
-  maxBufferSamples = numAllocatedChunks * CHUNK_SAMPLES;
-  // Require at least 12 chunks = ~3.07 seconds (49,152 samples)
-  return numAllocatedChunks >= 12;
 }
 
 // =====================================================
@@ -166,156 +176,229 @@ void drainSerialInput() {
 }
 
 // =====================================================
-// RECORD AUDIO
-// =====================================================
-// Protocol flow:
-// 1. Capture PCM samples into buffer until STOP button, serial STOP, or 60s max.
-// 2. Compute exact captured audio bytes.
-// 3. Emit metadata header with dynamic AUDIO_BYTES:
-//      RECORDING\n
-//      AUDIO_BYTES=<exact_bytes>\n
-//      SAMPLE_RATE=16000\n
-//      FORMAT=PCM_S16LE_MONO\n
-// 4. Stream exactly that many binary PCM bytes.
-// 5. Send DONE\n.
+// I2S CAPTURE TASK (PRODUCER)
+// Runs on Core 0 to continuously capture audio from I2S DMA
 // =====================================================
 
-void recordAudio() {
-  if (!i2sReady || recording || numAllocatedChunks == 0) {
-    return;
-  }
+void i2sCaptureTask(void* parameter) {
+  int32_t rawI2SSamples[SAMPLES_PER_FRAME];
 
-  recording = true;
+  while (true) {
+    // Wait until recording is triggered
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-  // Status LED ON while recording is active
-  digitalWrite(STATUS_LED_PIN, HIGH);
+    uint32_t lastSuccessfulReadMs = millis();
+    uint32_t recordStartTimeMs = millis();
 
-  // Clear microphone DMA buffer before capture
-  i2s_zero_dma_buffer(I2S_PORT);
-  delay(50);
+    // Clear microphone DMA buffer at session start
+    i2s_zero_dma_buffer(I2S_PORT);
+    delay(50);
 
-  int32_t i2sSamples[BUFFER_SIZE];
-  uint32_t totalSamplesCaptured = 0;
-  uint32_t lastSuccessfulReadMs = millis();
-  uint32_t recordStartTimeMs = millis();
-  bool stopRequested = false;
-
-  // Audio capture loop
-  while (totalSamplesCaptured < maxBufferSamples && !stopRequested) {
-    // 1. Physical STOP button check (active LOW with INPUT_PULLUP)
-    if (digitalRead(STOP_BUTTON_PIN) == LOW) {
-      delay(20);
+    while (isRecording && !stopRequested) {
+      // 1. Check physical STOP button (active LOW)
       if (digitalRead(STOP_BUTTON_PIN) == LOW) {
+        vTaskDelay(pdMS_TO_TICKS(20));
+        if (digitalRead(STOP_BUTTON_PIN) == LOW) {
+          stopRequested = true;
+          break;
+        }
+      }
+
+      // 2. Check 60-second maximum duration
+      if (millis() - recordStartTimeMs >= ((uint32_t)MAX_RECORD_SECONDS * 1000UL)) {
         stopRequested = true;
+        break;
+      }
+
+      // 3. Acquire a free buffer slot from the ring buffer queue
+      AudioFrame* frame = NULL;
+      if (xQueueReceive(freeQueue, &frame, 0) != pdTRUE || frame == NULL) {
+        // OVERRUN: Consumer (Serial) could not drain ring buffer in time!
+        streamError = true;
+        streamErrorCode = "ERROR:OVERRUN";
+        break;
+      }
+
+      // 4. Read samples from I2S DMA
+      size_t bytesRead = 0;
+      esp_err_t result = i2s_read(
+        I2S_PORT,
+        rawI2SSamples,
+        sizeof(rawI2SSamples),
+        &bytesRead,
+        pdMS_TO_TICKS(I2S_READ_TIMEOUT_MS)
+      );
+
+      if (result != ESP_OK || bytesRead == 0) {
+        // Return frame to free pool
+        xQueueSend(freeQueue, &frame, 0);
+
+        if (millis() - lastSuccessfulReadMs >= I2S_STALL_TIMEOUT_MS) {
+          streamError = true;
+          streamErrorCode = "ERROR:I2S_STALL";
+          break;
+        }
+        vTaskDelay(pdMS_TO_TICKS(2));
+        continue;
+      }
+
+      lastSuccessfulReadMs = millis();
+      size_t samplesRead = bytesRead / sizeof(int32_t);
+
+      // 5. Convert 24-bit in 32-bit I2S word to 16-bit PCM with clamping
+      for (size_t i = 0; i < samplesRead; ++i) {
+        int32_t sample = rawI2SSamples[i] >> 16;
+        if (sample > 32767) {
+          sample = 32767;
+        } else if (sample < -32768) {
+          sample = -32768;
+        }
+        frame->samples[i] = (int16_t)sample;
+      }
+      frame->sampleCount = samplesRead;
+
+      // 6. Push captured frame to ready queue for consumer transmission
+      if (xQueueSend(readyQueue, &frame, pdMS_TO_TICKS(50)) != pdTRUE) {
+        streamError = true;
+        streamErrorCode = "ERROR:QUEUE_FULL";
         break;
       }
     }
 
-    // 2. Non-blocking serial STOP command check (avoids blocking I2S capture)
+    // Capture loop ended
+    isRecording = false;
+  }
+}
+
+// =====================================================
+// TRANSMIT & RECORDING CONTROLLER (CONSUMER)
+// =====================================================
+
+void recordAudio() {
+  if (!i2sReady || isRecording) {
+    return;
+  }
+
+  // Reset state flags
+  isRecording = true;
+  stopRequested = false;
+  streamError = false;
+  streamErrorCode = NULL;
+
+  // Turn Status LED ON during recording and streaming
+  digitalWrite(STATUS_LED_PIN, HIGH);
+
+  // Reset ring buffer queues
+  xQueueReset(freeQueue);
+  xQueueReset(readyQueue);
+  for (int i = 0; i < RING_BUFFER_SLOTS; ++i) {
+    AudioFrame* ptr = &audioFramePool[i];
+    xQueueSend(freeQueue, &ptr, 0);
+  }
+
+  // Send VXF1 protocol control header
+  Serial.println("RECORDING");
+  Serial.printf("SAMPLE_RATE=%u\n", SAMPLE_RATE);
+  Serial.println("FORMAT=PCM_S16LE_MONO");
+  Serial.println("STREAM=VXF1");
+  Serial.println("DATA_START");
+  Serial.flush();
+
+  // Trigger capture task on Core 0
+  xTaskNotifyGive(captureTaskHandle);
+
+  uint32_t sequenceNumber = 0;
+
+  // Consumer loop: Stream frames as they arrive in readyQueue
+  while (true) {
+    AudioFrame* frame = NULL;
+
+    // Check if a frame is available to transmit
+    if (xQueueReceive(readyQueue, &frame, pdMS_TO_TICKS(10)) == pdTRUE && frame != NULL) {
+      size_t payloadBytes = frame->sampleCount * sizeof(int16_t);
+      const uint8_t* pcmBytes = reinterpret_cast<const uint8_t*>(frame->samples);
+      uint32_t crc = calculateCRC32(pcmBytes, payloadBytes);
+
+      // Build 16-byte binary frame header
+      FrameHeader header;
+      memcpy(header.magic, VXF_MAGIC, 4);
+      header.sequence = sequenceNumber++;
+      header.payloadLength = (uint32_t)payloadBytes;
+      header.crc32 = crc;
+
+      // Transmit header + payload
+      Serial.write(reinterpret_cast<const uint8_t*>(&header), sizeof(FrameHeader));
+      Serial.write(pcmBytes, payloadBytes);
+
+      // Return buffer slot to freeQueue
+      xQueueSend(freeQueue, &frame, 0);
+    }
+
+    // Check if a serial STOP command was received during recording
     while (Serial.available() > 0) {
       char c = (char)Serial.read();
       if (c == 'S' || c == 's') {
         stopRequested = true;
-        break;
       }
     }
-    if (stopRequested) {
+
+    // Handle fatal stream errors (e.g. Overrun or I2S stall)
+    if (streamError) {
+      digitalWrite(STATUS_LED_PIN, LOW);
+      isRecording = false;
+      Serial.flush();
+      if (streamErrorCode) {
+        Serial.println(streamErrorCode);
+      } else {
+        Serial.println("ERROR:STREAM_ERROR");
+      }
+      Serial.flush();
+      return;
+    }
+
+    // Check if producer has stopped and all remaining queued frames have been transmitted
+    if (!isRecording && uxQueueMessagesWaiting(readyQueue) == 0) {
       break;
-    }
-
-    // 3. Safety limit: maximum 60 seconds reached
-    if (millis() - recordStartTimeMs >= ((uint32_t)MAX_RECORD_SECONDS * 1000UL)) {
-      break;
-    }
-
-    size_t bytesRead = 0;
-    esp_err_t result = i2s_read(
-      I2S_PORT,
-      i2sSamples,
-      sizeof(i2sSamples),
-      &bytesRead,
-      pdMS_TO_TICKS(I2S_READ_TIMEOUT_MS)
-    );
-
-    if (result != ESP_OK || bytesRead == 0) {
-      if (millis() - lastSuccessfulReadMs >= I2S_STALL_TIMEOUT_MS) {
-        digitalWrite(STATUS_LED_PIN, LOW);
-        recording = false;
-        Serial.println("ERROR:I2S_STALL");
-        Serial.flush();
-        return;
-      }
-      continue;
-    }
-
-    lastSuccessfulReadMs = millis();
-
-    int samplesRead = bytesRead / sizeof(int32_t);
-    uint32_t remaining = maxBufferSamples - totalSamplesCaptured;
-    if ((uint32_t)samplesRead > remaining) {
-      samplesRead = (int)remaining;
-    }
-
-    // Convert 24-bit in 32-bit I2S word to 16-bit PCM with clamping
-    for (int i = 0; i < samplesRead; ++i) {
-      int32_t sample = i2sSamples[i] >> 16;
-      if (sample > 32767) {
-        sample = 32767;
-      } else if (sample < -32768) {
-        sample = -32768;
-      }
-      writeAudioSample(totalSamplesCaptured++, (int16_t)sample);
     }
   }
 
-  // Calculate exact dynamic byte count of captured PCM audio
-  uint32_t actualAudioBytes = totalSamplesCaptured * sizeof(int16_t);
+  // Drain any remaining frames left in readyQueue before terminating
+  AudioFrame* finalFrame = NULL;
+  while (xQueueReceive(readyQueue, &finalFrame, 0) == pdTRUE && finalFrame != NULL) {
+    size_t payloadBytes = finalFrame->sampleCount * sizeof(int16_t);
+    const uint8_t* pcmBytes = reinterpret_cast<const uint8_t*>(finalFrame->samples);
+    uint32_t crc = calculateCRC32(pcmBytes, payloadBytes);
 
-  // Send exact protocol header
-  Serial.println("RECORDING");
-  Serial.printf("AUDIO_BYTES=%lu\n", (unsigned long)actualAudioBytes);
-  Serial.printf("SAMPLE_RATE=%u\n", SAMPLE_RATE);
-  Serial.println("FORMAT=PCM_S16LE_MONO");
-  Serial.flush();
+    FrameHeader header;
+    memcpy(header.magic, VXF_MAGIC, 4);
+    header.sequence = sequenceNumber++;
+    header.payloadLength = (uint32_t)payloadBytes;
+    header.crc32 = crc;
 
-  // Transmit exact binary PCM payload chunk by chunk
-  uint32_t samplesSent = 0;
-  for (uint32_t c = 0; c < numAllocatedChunks && samplesSent < totalSamplesCaptured; ++c) {
-    uint32_t samplesInThisChunk = totalSamplesCaptured - samplesSent;
-    if (samplesInThisChunk > CHUNK_SAMPLES) {
-      samplesInThisChunk = CHUNK_SAMPLES;
-    }
-    size_t bytesInThisChunk = samplesInThisChunk * sizeof(int16_t);
-    const uint8_t* pcmBytes = reinterpret_cast<const uint8_t*>(chunkPointers[c]);
-    size_t chunkBytesWritten = 0;
+    Serial.write(reinterpret_cast<const uint8_t*>(&header), sizeof(FrameHeader));
+    Serial.write(pcmBytes, payloadBytes);
 
-    while (chunkBytesWritten < bytesInThisChunk) {
-      size_t toWrite = bytesInThisChunk - chunkBytesWritten;
-      if (toWrite > 1024) {
-        toWrite = 1024;
-      }
-      size_t written = Serial.write(pcmBytes + chunkBytesWritten, toWrite);
-      if (written == 0) {
-        digitalWrite(STATUS_LED_PIN, LOW);
-        recording = false;
-        Serial.println("ERROR:SERIAL_WRITE");
-        Serial.flush();
-        return;
-      }
-      chunkBytesWritten += written;
-    }
-    samplesSent += samplesInThisChunk;
+    xQueueSend(freeQueue, &finalFrame, 0);
   }
 
-  // Flush UART and send DONE marker
+  // Send zero-length end-of-stream final frame
+  FrameHeader endHeader;
+  memcpy(endHeader.magic, VXF_MAGIC, 4);
+  endHeader.sequence = sequenceNumber++;
+  endHeader.payloadLength = 0;
+  endHeader.crc32 = 0;
+
+  Serial.write(reinterpret_cast<const uint8_t*>(&endHeader), sizeof(FrameHeader));
   Serial.flush();
-  delay(20);
+
+  // Send DONE marker
+  delay(10);
   Serial.println("DONE");
   Serial.flush();
 
   // Turn Status LED OFF when session capture and transmission complete
   digitalWrite(STATUS_LED_PIN, LOW);
-  recording = false;
+  isRecording = false;
 }
 
 // =====================================================
@@ -332,16 +415,42 @@ void setup() {
   pinMode(STATUS_LED_PIN, OUTPUT);
   digitalWrite(STATUS_LED_PIN, LOW);
 
-  delay(1000);
+  delay(500);
 
-  // Initialize I2S first so DMA buffers are secured
+  // Initialize CRC32 lookup table
+  initCrcTable();
+
+  // Create producer-consumer FreeRTOS queues
+  freeQueue = xQueueCreate(RING_BUFFER_SLOTS, sizeof(AudioFrame*));
+  readyQueue = xQueueCreate(RING_BUFFER_SLOTS, sizeof(AudioFrame*));
+
+  if (freeQueue == NULL || readyQueue == NULL) {
+    fatalError("ERROR:QUEUE_INIT");
+  }
+
+  for (int i = 0; i < RING_BUFFER_SLOTS; ++i) {
+    AudioFrame* ptr = &audioFramePool[i];
+    xQueueSend(freeQueue, &ptr, 0);
+  }
+
+  // Initialize I2S
   if (!setupI2S()) {
     fatalError("ERROR:I2S_INIT");
   }
 
-  // Initialize segmented audio buffer from PSRAM or internal DRAM
-  if (!initAudioBuffer()) {
-    fatalError("ERROR:MEM_ALLOC");
+  // Spawn I2S Capture Task pinned to Core 0 with high priority
+  xTaskCreatePinnedToCore(
+    i2sCaptureTask,
+    "I2SCaptureTask",
+    4096,
+    NULL,
+    configMAX_PRIORITIES - 1,
+    &captureTaskHandle,
+    0
+  );
+
+  if (captureTaskHandle == NULL) {
+    fatalError("ERROR:TASK_CREATE");
   }
 
   i2sReady = true;
@@ -356,7 +465,7 @@ void setup() {
 // =====================================================
 
 void loop() {
-  if (recording || !i2sReady) {
+  if (isRecording || !i2sReady) {
     delay(2);
   }
 
@@ -364,7 +473,7 @@ void loop() {
   if (digitalRead(START_BUTTON_PIN) == LOW) {
     delay(DEBOUNCE_DELAY_MS);
     if (digitalRead(START_BUTTON_PIN) == LOW) {
-      // Wait for release before starting capture
+      // Wait for button release before starting capture
       while (digitalRead(START_BUTTON_PIN) == LOW) {
         delay(10);
       }
@@ -394,3 +503,4 @@ void loop() {
 
   delay(2);
 }
+
