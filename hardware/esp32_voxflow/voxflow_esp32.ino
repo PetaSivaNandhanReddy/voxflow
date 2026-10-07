@@ -468,7 +468,7 @@ void setup() {
   xTaskCreatePinnedToCore(
     i2sCaptureTask,
     "I2SCaptureTask",
-    4096,
+    8192,
     NULL,
     configMAX_PRIORITIES - 1,
     &captureTaskHandle,
