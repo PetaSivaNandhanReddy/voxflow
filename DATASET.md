@@ -1,6 +1,6 @@
 # VoxFlow V2 — Dataset Specification
 
-This document summarizes the dataset sources, curation policies, and splits used in VoxFlow V2. Full quantitative distributions and verification hashes are recorded in `v2/audit/full_dataset_audit.json` and `v2/audit/v2_dataset_lock.json`.
+This document summarizes the dataset sources, curation policies, and splits used in VoxFlow V2. Full quantitative distributions and verification hashes are recorded in `docs/audit/full_dataset_audit.json` and `docs/audit/v2_dataset_lock.json`.
 
 ---
 

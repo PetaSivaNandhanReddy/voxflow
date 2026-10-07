@@ -36,9 +36,10 @@ Thumbs.db
 *.ckpt
 *.bin
 *.safetensors
-models/cache/*.npz
+*.npz
+models/cache/
 
-# Large Audio Files & Raw Archives
+# Audio Buffers, Recordings & Raw Archives
 *.wav
 *.mp3
 *.m4a
@@ -49,9 +50,10 @@ models/cache/*.npz
 *.tar.gz
 *.tgz
 *.gz
+audio_buffer/
+recordings/
 dataset/raw/
 dataset/audio/
-recordings/
 
 # Database files & local test DBs
 *.db
@@ -69,7 +71,7 @@ secrets/
 *token*
 kaggle.json
 
-# Kaggle temporary / cache / output directories & files
+# Temporary / cache / output directories & files
 kaggle_working/
 kaggle_output/
 __notebook_source__.ipynb
