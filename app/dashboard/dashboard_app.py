@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 VoxFlow V2 — Speech Fluency & Disfluency Session Analyzer Dashboard
-Streamlit interface for continuous speech recording analysis, sliding-window disfluency
+Streamlit interface for speech recording analysis, sliding-window disfluency
 detection with HuBERT-D, event localization, session history, and longitudinal trends.
 """
 
@@ -10,7 +10,6 @@ import sys
 import pathlib
 import datetime
 import pandas as pd
-import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
@@ -92,7 +91,7 @@ st.markdown("""
     }
     .vf-metric-card {
         flex: 1;
-        min-width: 160px;
+        min-width: 140px;
         background: #FFFFFF;
         border: 1px solid #E2E8F0;
         border-radius: 10px;
@@ -112,7 +111,7 @@ st.markdown("""
         margin-bottom: 4px;
     }
     .vf-metric-val {
-        font-size: 28px;
+        font-size: 26px;
         font-weight: 700;
         color: #0F172A;
     }
@@ -149,51 +148,6 @@ st.markdown("""
         color: #64748B;
         margin-bottom: 16px;
     }
-
-    /* Subtle Notice Banner */
-    .vf-notice-box {
-        background-color: #F8FAFC;
-        border-left: 3px solid #64748B;
-        padding: 12px 16px;
-        border-radius: 4px;
-        font-size: 13px;
-        color: #475569;
-        margin-top: 24px;
-    }
-
-    /* Pill Badges */
-    .badge-rep {
-        background-color: #FEF3C7;
-        color: #92400E;
-        padding: 3px 8px;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 12px;
-    }
-    .badge-pro {
-        background-color: #DBEAFE;
-        color: #1E40AF;
-        padding: 3px 8px;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 12px;
-    }
-    .badge-blk {
-        background-color: #EDE9FE;
-        color: #5B21B6;
-        padding: 3px 8px;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 12px;
-    }
-    .badge-fluent {
-        background-color: #D1FAE5;
-        color: #065F46;
-        padding: 3px 8px;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 12px;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -214,7 +168,6 @@ def format_timestamp(ts_str):
     if not ts_str or ts_str == "N/A":
         return "Recent Session"
     try:
-        # Handle string formats like '2026-10-06T17:15:29' or '2026-10-06 17:15:29'
         clean_ts = ts_str.replace("T", " ")
         if "." in clean_ts:
             clean_ts = clean_ts.split(".")[0]
@@ -230,8 +183,6 @@ def create_event_timeline(events, session_duration=None):
         return None
 
     fig = go.Figure()
-    
-    # Track min/max to set reasonable axis range
     max_time = session_duration or 0.0
 
     for ev in events:
@@ -412,36 +363,43 @@ def render_session_report(session_data, engine):
     windows = session_data.get("windows", [])
     events = session_data.get("events", [])
     
-    # 1. Summary Metric Cards
-    fluency_pct = round(float(summary.get("fluency_ratio", 1.0)) * 100, 1)
+    # 1. Summary Metric Cards: Duration, Fluency, Repetition, Prolongation, Block
     duration_s = float(summary.get("duration_sec", 0.0))
+    fluency_pct = round(float(summary.get("fluency_ratio", 1.0)) * 100, 1)
     rep_count = int(summary.get("repetition_count", 0))
     pro_count = int(summary.get("prolongation_count", 0))
     blk_count = int(summary.get("block_count", 0))
     
-    col1, col2, col3, col4 = st.columns([1.2, 1, 1, 1])
-    with col1:
+    col_dur, col_flu, col_rep, col_pro, col_blk = st.columns([1, 1.2, 1, 1, 1])
+    with col_dur:
+        st.markdown(f"""
+        <div class="vf-metric-card">
+            <div class="vf-metric-label">Duration</div>
+            <div class="vf-metric-val">{duration_s:.1f}s</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with col_flu:
         st.markdown(f"""
         <div class="vf-metric-card primary">
-            <div class="vf-metric-label">Session Fluency</div>
+            <div class="vf-metric-label">Fluency</div>
             <div class="vf-metric-val fluency">{fluency_pct:.0f}%</div>
         </div>
         """, unsafe_allow_html=True)
-    with col2:
+    with col_rep:
         st.markdown(f"""
         <div class="vf-metric-card">
             <div class="vf-metric-label">Repetition</div>
             <div class="vf-metric-val rep">{rep_count}</div>
         </div>
         """, unsafe_allow_html=True)
-    with col3:
+    with col_pro:
         st.markdown(f"""
         <div class="vf-metric-card">
             <div class="vf-metric-label">Prolongation</div>
             <div class="vf-metric-val pro">{pro_count}</div>
         </div>
         """, unsafe_allow_html=True)
-    with col4:
+    with col_blk:
         st.markdown(f"""
         <div class="vf-metric-card">
             <div class="vf-metric-label">Block</div>
@@ -471,8 +429,8 @@ def render_session_report(session_data, engine):
         st.info("No disfluency events were detected in this session.")
 
     # 4. Collapsible Advanced Analysis
-    with st.expander("▸ Advanced Analysis (Model Probabilities & Window Audit)"):
-        st.caption("Detailed window-level model posterior probabilities and sliding analysis window outputs.")
+    with st.expander("▸ Advanced Analysis"):
+        st.caption("Detailed results for each analysis segment.")
         
         info = engine.get_model_info() if engine else MODEL_CONFIG
         thresholds = info.get("thresholds", MODEL_CONFIG["locked_thresholds"])
@@ -480,27 +438,30 @@ def render_session_report(session_data, engine):
         if windows:
             fig_prob = create_probability_timeline(windows, thresholds)
             if fig_prob:
-                st.markdown("###### Multi-Label Probability Timeline")
+                st.markdown("###### Probability Timeline")
                 st.plotly_chart(fig_prob, use_container_width=True)
 
-            st.markdown("###### Window-Level Prediction Details")
+            st.markdown("###### Window-level Details")
             df_audit = create_window_audit_df(windows)
             if not df_audit.empty:
                 st.dataframe(df_audit, use_container_width=True, hide_index=True)
         else:
-            st.caption("No window-level audit data stored for this session.")
+            st.caption("No window-level details available for this session.")
 
 
 # =============================================================================
 # Navigation Setup
 # =============================================================================
 
-# Initialize session state for navigation
+# Initialize session state for navigation & analyzed file identity
 if "active_page" not in st.session_state:
     st.session_state["active_page"] = "Home"
 
 if "last_analyzed_session" not in st.session_state:
     st.session_state["last_analyzed_session"] = None
+
+if "analyzed_file_key" not in st.session_state:
+    st.session_state["analyzed_file_key"] = None
 
 # Sidebar
 st.sidebar.markdown("""
@@ -559,6 +520,8 @@ if st.session_state["active_page"] == "Home":
     with col_btn:
         if st.button("🎙️ Analyze New Session", type="primary", use_container_width=True):
             st.session_state["active_page"] = "Analyze"
+            st.session_state["last_analyzed_session"] = None
+            st.session_state["analyzed_file_key"] = None
             st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -571,19 +534,14 @@ if st.session_state["active_page"] == "Home":
         created_str = format_timestamp(latest.get("created_at") or latest.get("started_at"))
         dur = float(latest.get("duration_sec", 0.0))
         fluency = round(float(latest.get("fluency_ratio", 1.0)) * 100, 1)
-        total_events = int(latest.get("repetition_count", 0)) + int(latest.get("prolongation_count", 0)) + int(latest.get("block_count", 0))
 
         st.markdown(f"""
         <div class="vf-card">
-            <div style="font-size: 13px; color: #64748B; margin-bottom: 12px;">{created_str} · Duration: {dur:.1f}s</div>
+            <div style="font-size: 13px; color: #64748B; margin-bottom: 12px;">{dur:.1f}s · {created_str}</div>
             <div class="vf-metric-container" style="margin-bottom: 12px;">
                 <div class="vf-metric-card primary">
                     <div class="vf-metric-label">Fluency</div>
                     <div class="vf-metric-val fluency">{fluency:.0f}%</div>
-                </div>
-                <div class="vf-metric-card">
-                    <div class="vf-metric-label">Total Events</div>
-                    <div class="vf-metric-val">{total_events}</div>
                 </div>
                 <div class="vf-metric-card">
                     <div class="vf-metric-label">Repetition</div>
@@ -629,12 +587,14 @@ elif st.session_state["active_page"] == "Analyze":
     """, unsafe_allow_html=True)
 
     uploaded_file = st.file_uploader(
-        "Upload a speech recording (WAV format, 16 kHz recommended)",
+        "Upload a speech recording",
         type=["wav"],
-        help="Upload a continuous speech recording (3 to 60 seconds)."
+        help="WAV format · 3–60 seconds"
     )
+    st.caption("WAV format · 3–60 seconds")
 
     if uploaded_file is not None:
+        file_key = f"{uploaded_file.name}_{uploaded_file.size}"
         st.markdown(f"**Selected file:** `{uploaded_file.name}`")
         st.audio(uploaded_file, format="audio/wav")
 
@@ -654,22 +614,26 @@ elif st.session_state["active_page"] == "Analyze":
                     # Persist session atomically to SQLite
                     save_session(summary, windows, events)
 
-                    # Store full object in session state
+                    # Store full object and file identity in session state
                     full_session = dict(summary)
                     full_session["windows"] = windows
                     full_session["events"] = events
                     st.session_state["last_analyzed_session"] = full_session
+                    st.session_state["analyzed_file_key"] = file_key
 
                     st.success("Analysis complete.")
                 except Exception as ex:
                     st.error("We couldn't analyze this recording. Please check the file and try again.")
-                    with st.expander("Technical details"):
-                        st.exception(ex)
+                    with st.expander("▸ Technical details"):
+                        st.caption(f"Error: {ex}")
 
-    # Display Analysis Result if available in session_state
-    if st.session_state.get("last_analyzed_session"):
-        st.markdown("### Session Analysis Result")
-        render_session_report(st.session_state["last_analyzed_session"], engine)
+        # Display Analysis Result only if it matches the current uploaded file
+        if (
+            st.session_state.get("analyzed_file_key") == file_key
+            and st.session_state.get("last_analyzed_session")
+        ):
+            st.markdown("### Session Analysis")
+            render_session_report(st.session_state["last_analyzed_session"], engine)
 
     # Secondary Expandable Section: ESP32 Hardware
     st.markdown("<br>", unsafe_allow_html=True)
@@ -712,6 +676,8 @@ elif st.session_state["active_page"] == "Sessions":
         """, unsafe_allow_html=True)
         if st.button("Analyze a Session", type="primary"):
             st.session_state["active_page"] = "Analyze"
+            st.session_state["last_analyzed_session"] = None
+            st.session_state["analyzed_file_key"] = None
             st.rerun()
     else:
         # Format table rows cleanly
@@ -742,7 +708,7 @@ elif st.session_state["active_page"] == "Sessions":
         df_sessions = pd.DataFrame(table_rows)
         st.dataframe(df_sessions, use_container_width=True, hide_index=True)
 
-        st.markdown("### Inspect Session")
+        st.markdown("### Session Details")
         
         # Determine initial selection index
         default_index = 0
@@ -754,10 +720,9 @@ elif st.session_state["active_page"] == "Sessions":
                     break
 
         selected_label = st.selectbox(
-            "Select session to inspect:",
+            "Select a session",
             options=list(session_options.keys()),
-            index=default_index,
-            label_visibility="collapsed"
+            index=default_index
         )
 
         if selected_label:
@@ -791,6 +756,8 @@ elif st.session_state["active_page"] == "Trends":
         """, unsafe_allow_html=True)
         if st.button("Analyze a Session", type="primary"):
             st.session_state["active_page"] = "Analyze"
+            st.session_state["last_analyzed_session"] = None
+            st.session_state["analyzed_file_key"] = None
             st.rerun()
     else:
         # Sort chronologically for trends
