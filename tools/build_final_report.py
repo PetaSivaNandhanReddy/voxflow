@@ -1,7 +1,18 @@
 """
 build_full_report.py
-Generates the pristine 31-page VoxFlow Final Project Report DOCX and PDF
-in strict compliance with all faculty formatting and content requirements.
+Generates the pristine faculty-compliant VoxFlow Final Project Report DOCX and PDF.
+Strictly adheres to:
+- 12 pt Regular Times New Roman, line spacing 1.5, Justified, 0.5" first-line indent
+- 16 pt Bold UPPERCASE Chapter Headings
+- 14 pt Bold Section Headings
+- 12 pt Bold Subsection Headings
+- 10 pt Bold Figure and Table Captions
+- A4 Paper, Left 1.25", Right 1.0", Top 1.0", Bottom 1.0" margins
+- Bottom-centre page numbers
+- All 13 research papers in individual narrative entries (no table)
+- Honest separation of software vs. physical validation (no unsupported claims)
+- Research prototype positioning (no clinical diagnostic or HIPAA claims)
+- Correct API endpoints (/api/v1/session/<session_id>/analyze)
 """
 import os
 import sys
@@ -13,7 +24,7 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import nsdecls, qn
 
-def set_cell_margins(cell, top=40, bottom=40, left=80, right=80):
+def set_cell_margins(cell, top=50, bottom=50, left=70, right=70):
     """Set inner padding for table cells in dxa."""
     tcPr = cell._tc.get_or_add_tcPr()
     tcMar = OxmlElement('w:tcMar')
@@ -59,7 +70,7 @@ def create_report():
     normal_style.font.name = 'Times New Roman'
     normal_style.font.size = Pt(12)
     normal_style.font.color.rgb = RGBColor(0, 0, 0)
-    normal_style.paragraph_format.line_spacing = 1.3
+    normal_style.paragraph_format.line_spacing = 1.5
     normal_style.paragraph_format.space_after = Pt(2)
     normal_style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
 
@@ -109,10 +120,8 @@ def create_report():
         run.bold = True
         return p
 
-    def add_section_heading(text, page_break_before=False):
+    def add_section_heading(text):
         p = doc.add_paragraph()
-        if page_break_before:
-            p.paragraph_format.page_break_before = True
         p.paragraph_format.space_before = Pt(6)
         p.paragraph_format.space_after = Pt(2)
         p.paragraph_format.keep_with_next = True
@@ -140,10 +149,10 @@ def create_report():
     def add_body_p(text, indent=True, space_after=2):
         p = doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        p.paragraph_format.line_spacing = 1.25
+        p.paragraph_format.line_spacing = 1.5
         p.paragraph_format.space_after = Pt(space_after)
         if indent:
-            p.paragraph_format.first_line_indent = Inches(0.4)
+            p.paragraph_format.first_line_indent = Inches(0.5)
         else:
             p.paragraph_format.first_line_indent = Inches(0)
         run = p.add_run(text)
@@ -154,10 +163,10 @@ def create_report():
     def add_bullet_p(bold_prefix, text, space_after=1):
         p = doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        p.paragraph_format.line_spacing = 1.25
+        p.paragraph_format.line_spacing = 1.5
         p.paragraph_format.space_after = Pt(space_after)
-        p.paragraph_format.left_indent = Inches(0.35)
-        p.paragraph_format.first_line_indent = Inches(-0.2)
+        p.paragraph_format.left_indent = Inches(0.5)
+        p.paragraph_format.first_line_indent = Inches(-0.25)
         
         run_bullet = p.add_run("• ")
         run_bullet.font.name = 'Times New Roman'
@@ -295,14 +304,14 @@ def create_report():
     def add_lit_entry(num_str, title_str, prob_str, meth_str, find_str, gap_str, rel_str):
         p = doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        p.paragraph_format.line_spacing = 1.2
-        p.paragraph_format.space_before = Pt(3)
+        p.paragraph_format.line_spacing = 1.5
+        p.paragraph_format.space_before = Pt(4)
         p.paragraph_format.space_after = Pt(2)
         p.paragraph_format.first_line_indent = Inches(0)
         
         rh = p.add_run(f"{num_str} {title_str}\n")
         rh.font.name = 'Times New Roman'
-        rh.font.size = Pt(11)
+        rh.font.size = Pt(12)
         rh.bold = True
         
         items = [
@@ -315,15 +324,15 @@ def create_report():
         for label, text in items:
             rb = p.add_run(label + " ")
             rb.font.name = 'Times New Roman'
-            rb.font.size = Pt(10)
+            rb.font.size = Pt(11)
             rb.bold = True
             
             rt = p.add_run(text + " ")
             rt.font.name = 'Times New Roman'
-            rt.font.size = Pt(10)
+            rt.font.size = Pt(11)
 
     # =============================================================
-    # PAGE 1: TITLE PAGE
+    # TITLE PAGE
     # =============================================================
     add_title_p("VOXFLOW — SPEECH FLUENCY & DISFLUENCY\nSESSION ANALYZER", size=18, bold=True, space_before=36, space_after=12)
     add_title_p("FINAL PROJECT REPORT", size=14, bold=True, space_after=8)
@@ -339,27 +348,27 @@ def create_report():
     add_title_p("Project Repository: https://github.com/PetaSivaNandhanReddy/voxflow", size=11, bold=False, space_after=18)
 
     # =============================================================
-    # PAGE 2: ABSTRACT
+    # ABSTRACT
     # =============================================================
     add_chapter_heading("ABSTRACT", page_break_before=True)
-    add_body_p("Speech disfluencies, such as repetitions, prolongations, and blocks, interrupt the smooth, natural rhythm of verbal expression. In clinical speech therapy, tracking therapeutic progress requires clinicians to listen to recorded sessions and manually tally disfluent events by hand. This manual counting is time-consuming, mentally demanding, and susceptible to inter-rater variability. While self-supervised speech representations have recently advanced automated stuttering detection, existing research focuses almost exclusively on classifying isolated 3-second audio clips without addressing the end-to-end engineering challenges of dedicated hardware capture, error-checked serial transport, continuous multi-window session inference, temporal event consolidation, and persistent historical tracking.")
-    add_body_p("VoxFlow is an end-to-end speech fluency session analyzer designed to bridge this research gap. The system consists of an embedded hardware capture unit built on an ESP32 microcontroller and an INMP441 MEMS digital microphone recording 16 kHz, 16-bit mono PCM audio. Audio frames are streamed over USB-UART using a custom-engineered framed binary protocol (VXF1) equipped with 32-bit sequence tracking and CRC32 payload verification. A Python serial bridge reconstructs session WAV files and dispatches them to a Flask REST backend. The backend executes multi-label disfluency classification using HuBERT-D, a fine-tuned HuBERT Transformer evaluated on speaker-exclusive partitions of SEP-28k and FluencyBank (519 unique speakers). Temporal event aggregation consolidates overlapping 3-second window inferences into distinct, non-redundant clinical disfluency events. Session results, window probabilities, and aggregate metrics are stored in a local SQLite database and visualized via an interactive Streamlit dashboard. HuBERT-D achieves a test macro F1 of 0.4599 and a mean ROC-AUC of 0.8099 on unseen speakers, outperforming wav2vec 2.0 (0.4498) and an MFCC + SVM baseline (0.3121). All 38 automated unit and integration tests pass successfully, demonstrating a robust, fully verifiable session analysis platform.")
+    add_body_p("Speech disfluencies, such as repetitions, prolongations, and blocks, interrupt the smooth, natural rhythm of verbal expression. In speech therapy, tracking progress over time requires therapists to listen to recorded sessions and manually tally disfluent events by hand. This manual counting is time-consuming, mentally demanding, and susceptible to inter-rater variability. While self-supervised speech representations have recently advanced automated stuttering detection, existing research focuses almost exclusively on classifying isolated 3-second audio clips without addressing the end-to-end engineering challenges of dedicated hardware capture, error-checked serial transport, continuous multi-window session inference, temporal event consolidation, and persistent historical tracking.")
+    add_body_p("VoxFlow is an end-to-end speech fluency session analyzer designed to bridge this research gap. The system consists of an embedded hardware capture unit built on an ESP32 microcontroller and an INMP441 MEMS digital microphone recording 16 kHz, 16-bit mono PCM audio. Audio frames are streamed over USB-UART using a custom-engineered framed binary protocol (VXF1) equipped with 32-bit sequence tracking and CRC32 payload verification. A Python serial bridge reconstructs session WAV files and dispatches them to a Flask REST backend. The backend executes multi-label disfluency classification using HuBERT-D, a fine-tuned HuBERT Transformer evaluated on speaker-exclusive partitions of SEP-28k and FluencyBank (519 unique speakers). Temporal event aggregation consolidates overlapping 3-second window inferences into distinct, non-redundant detected disfluency events. Session results, window probabilities, and aggregate metrics are stored in a local SQLite database and visualized via an interactive Streamlit dashboard. HuBERT-D achieves a test macro F1 of 0.4599 and a mean ROC-AUC of 0.8099 on unseen speakers, outperforming wav2vec 2.0 (0.4498) and an MFCC + SVM baseline (0.3121). All 38 automated unit and integration tests pass successfully, demonstrating a robust, fully verifiable session analysis platform. VoxFlow is a research prototype and is not a medical diagnostic system.")
 
     # =============================================================
-    # PAGE 3: CHAPTER 1: INTRODUCTION AND PROJECT OVERVIEW
+    # CHAPTER 1: INTRODUCTION AND PROJECT OVERVIEW
     # =============================================================
     add_chapter_heading("1. INTRODUCTION AND PROJECT OVERVIEW", page_break_before=True)
     
     add_section_heading("1.1 Background")
-    add_body_p("Stuttering is a neurodevelopmental speech disorder characterized by frequent disruptions in the forward flow of verbal expression. Clinically, disfluent speech patterns are categorized into three core behaviors: repetitions (involuntary iterations of sounds, syllables, or single-syllable words), prolongations (abnormal lengthening of continuous phonetic segments), and blocks (silent or audible postural fixations where airflow and vocalization are temporarily arrested). Stuttering affects approximately 1% of the global adult population and up to 5% of young children, impacting social communication, academic engagement, and emotional well-being.")
-    add_body_p("Speech-language pathologists (SLPs) track therapeutic progress across multi-week interventions by evaluating disfluency frequency and severity during structured speech sessions. In standard clinical practice, therapists manually annotate audio or video recordings, tallying individual disfluency occurrences to compute standardized metrics such as the Percentage of Stuttered Syllables (%SS) and Stuttering Severity Instrument (SSI) scores. However, manual perceptual evaluation is labor-intensive, exhausting, and prone to substantial subjective disagreement across raters [1]. Recent advances in computational speech processing have introduced machine learning models for automated disfluency detection using publicly available corpora such as SEP-28k [2] and FluencyBank [3]. Nevertheless, the vast majority of existing academic literature remains confined to classifying isolated 3-second audio clips, leaving an unaddressed engineering gap between algorithmic clip classification and continuous, hardware-integrated clinical session analysis.")
+    add_body_p("Stuttering is a neurodevelopmental speech condition characterized by frequent disruptions in the forward flow of verbal expression. Disfluent speech patterns are commonly categorized into three core behaviors: repetitions (involuntary iterations of sounds, syllables, or single-syllable words), prolongations (abnormal lengthening of continuous phonetic segments), and blocks (silent or audible postural fixations where airflow and vocalization are temporarily arrested). Stuttering affects approximately 1% of the global adult population and up to 5% of young children, impacting social communication, academic engagement, and emotional well-being.")
+    add_body_p("Speech-language pathologists (SLPs) track progress across multi-week interventions by evaluating disfluency frequency and severity during structured speech sessions. In standard practice, therapists listen to audio or video recordings and tally individual disfluency occurrences to compute metrics such as the Percentage of Stuttered Syllables (%SS) and Stuttering Severity Instrument (SSI) scores. However, manual perceptual evaluation is labor-intensive, exhausting, and prone to subjective disagreement across raters [1]. Recent advances in computational speech processing have introduced machine learning models for automated disfluency detection using publicly available corpora such as SEP-28k [2] and FluencyBank [3]. Nevertheless, the vast majority of existing academic literature remains confined to classifying isolated 3-second audio clips, leaving an unaddressed engineering gap between algorithmic clip classification and continuous, hardware-integrated session analysis.")
 
     add_section_heading("1.2 Project Overview")
     add_body_p("VoxFlow addresses this challenge by providing a complete, automated speech fluency and disfluency session analyzer. The system operates through a structured end-to-end pipeline:")
     add_bullet_p("Record session:", "The user initiates recording using a dedicated ESP32 + INMP441 physical capture unit (3 to 60 seconds).")
     add_bullet_p("Process audio:", "Audio is streamed over serial via the verified VXF1 protocol, reconstructed into a standardized 16 kHz mono WAV file, validated, and sliced into 3.0-second sliding analysis windows with a 1.0-second hop.")
     add_bullet_p("Detect disfluencies:", "HuBERT-D performs multi-label inference on each window, generating independent probabilities for repetition, prolongation, and block classes.")
-    add_bullet_p("Aggregate events:", "A temporal event aggregation algorithm merges contiguous and proximate window activations (within a 1.5-second merge gap) into unified, non-redundant clinical events.")
+    add_bullet_p("Aggregate events:", "A temporal event aggregation algorithm merges contiguous and proximate window activations (within a 1.5-second merge gap) into unified, non-redundant detected disfluency events.")
     add_bullet_p("Store results:", "Session metadata, per-window probability vectors, and aggregated disfluency events are persisted to a relational SQLite database.")
     add_bullet_p("Review history:", "An interactive Streamlit visual analytics dashboard displays session timelines, per-class breakdown charts, and longitudinal progress trends across multiple sessions.")
 
@@ -368,15 +377,15 @@ def create_report():
     add_bullet_p("Objective 1 (Hardware Capture & Transport):", "Design and construct a low-cost, dedicated digital speech capture unit using an ESP32 microcontroller and INMP441 MEMS microphone, with an error-checked framed binary streaming protocol (VXF1) ensuring zero silent data loss.")
     add_bullet_p("Objective 2 (Continuous Speech Analysis Engine):", "Implement a backend processing pipeline that validates session audio (3–60 s), handles arbitrary session lengths via sliding windows (3.0 s window, 1.0 s hop), and reliably classifies core disfluencies.")
     add_bullet_p("Objective 3 (Self-Supervised Disfluency Modeling):", "Fine-tune a self-supervised transformer model (HuBERT-D) on speaker-exclusive partitions of SEP-28k and FluencyBank, rigorously evaluating performance against wav2vec 2.0 and traditional acoustic baselines.")
-    add_bullet_p("Objective 4 (Temporal Consolidation & Visual Analytics):", "Develop a temporal event aggregator to prevent multi-counting across overlapping analysis windows, backed by relational database persistence and an intuitive clinical dashboard for session review and longitudinal trend analysis.")
+    add_bullet_p("Objective 4 (Temporal Consolidation & Visual Analytics):", "Develop a temporal event aggregator to prevent multi-counting across overlapping analysis windows, backed by relational database persistence and an intuitive dashboard for session review and longitudinal trend analysis.")
 
     # =============================================================
-    # PAGE 4: CHAPTER 2: PROBLEM STATEMENT, RESEARCH GAP AND NOVELTY
+    # CHAPTER 2: PROBLEM STATEMENT, RESEARCH GAP AND NOVELTY
     # =============================================================
-    add_chapter_heading("2. PROBLEM STATEMENT, RESEARCH GAP AND NOVELTY", page_break_before=False)
+    add_chapter_heading("2. PROBLEM STATEMENT, RESEARCH GAP AND NOVELTY")
     
     add_section_heading("2.1 Problem Statement")
-    add_body_p("Tracking speech fluency over longitudinal therapeutic interventions requires repeated speech assessments. In current clinical and therapeutic workflows, clinicians and speech therapists must manually listen to recorded sessions and hand-count individual repetitions, prolongations, and blocks. This manual observation demands substantial clinical time, imposes a heavy cognitive workload, and complicates objective comparison of patient progress across consecutive weeks.")
+    add_body_p("Tracking speech fluency over longitudinal therapeutic interventions requires repeated speech assessments. In current therapeutic workflows, clinicians and speech therapists must manually listen to recorded sessions and hand-count individual repetitions, prolongations, and blocks. This manual observation demands substantial time, imposes a heavy cognitive workload, and complicates objective comparison of patient progress across consecutive weeks.")
     add_body_p("When automated speech processing is introduced to assist this workflow, sliding analysis windows applied across continuous speech naturally produce overlapping detections: a single 2-second block or prolongation spanning across multiple consecutive windows is counted multiple times if left unmerged. Furthermore, therapists require structured session-level information—including total session duration, speaking time, total disfluency count, disfluency rate per minute, and chronological event timelines—rather than isolated clip labels. Therefore, the core engineering problem is: how can we capture speech sessions with low-cost hardware, detect repetitions, prolongations, and blocks across continuous speech without redundant window multi-counting, and store structured session results so that therapeutic progress can be objectively reviewed over time? VoxFlow is designed as an assistive research tool to provide structured measurements and does not replace professional clinical diagnosis.")
 
     add_section_heading("2.2 Existing Limitations")
@@ -385,7 +394,7 @@ def create_report():
     add_bullet_p("Multi-Counting in Sliding Windows:", "Applying clip classifiers across continuous sessions using sliding windows causes individual disfluencies to trigger in several consecutive windows, falsely inflating event counts without temporal consolidation.")
     add_bullet_p("Overoptimistic Splitting Schemes:", "Many studies utilize random train/test splits that leak speaker identities across sets, producing inflated benchmark scores that fail to generalize to unseen speakers.")
     add_bullet_p("Absence of Integrated Capture Hardware:", "Existing studies focus on offline machine learning notebooks and rarely specify the hardware capture chain, microphone electrical interfacing, or transmission error handling.")
-    add_bullet_p("Lack of Longitudinal Storage & Visualization:", "Academic prototypes rarely incorporate persistent database storage or clinical dashboard interfaces for tracking fluency trends across multiple sessions.")
+    add_bullet_p("Lack of Longitudinal Storage & Visualization:", "Academic prototypes rarely incorporate persistent database storage or dashboard interfaces for tracking fluency trends across multiple sessions.")
 
     add_section_heading("2.3 Research Gap")
     add_body_p("In the set of published studies reviewed (detailed in Chapter 3), we did not find a unified system that integrates: (a) dedicated low-cost embedded speech capture with hardware-level transport verification, (b) continuous multi-window self-supervised disfluency detection evaluated under speaker-exclusive constraints, (c) temporal event aggregation to eliminate overlapping window redundancy, and (d) relational session persistence with longitudinal visual analytics. Existing work addresses isolated sub-problems—such as model architectures or dataset curation—leaving an end-to-end systems gap for session-level fluency tracking.")
@@ -394,13 +403,13 @@ def create_report():
     add_body_p("VoxFlow does not claim to introduce a novel neural architecture from scratch; rather, its novelty and contribution reside in its comprehensive, verified system-level integration:")
     add_bullet_p("Framed Hardware Streaming (VXF1):", "Engineered an embedded binary protocol on ESP32 that embeds frame magic headers, 32-bit sequence numbers, payload lengths, and CRC32 checksums, ensuring transmission integrity across USB-UART.")
     add_bullet_p("Speaker-Exclusive HuBERT-D Modeling:", "Fine-tuned HuBERT-D on 30,999 multi-annotator audio clips across 519 strictly partitioned, speaker-exclusive individuals, ensuring realistic generalization on unseen voices.")
-    add_bullet_p("Temporal Event Aggregation Algorithm:", "Formulated an algorithmic consolidation mechanism that clusters overlapping window detections within a 1.5-second gap into single, bounded clinical events.")
+    add_bullet_p("Temporal Event Aggregation Algorithm:", "Formulated an algorithmic consolidation mechanism that clusters overlapping window detections within a 1.5-second gap into single, bounded detected disfluency events.")
     add_bullet_p("Complete Dual-Mode Software Pipeline:", "Developed an integrated platform supporting both live hardware recording and standalone WAV file uploads, with relational SQLite persistence and Streamlit visual analytics.")
 
     # =============================================================
-    # PAGE 5 & 6: CHAPTER 3: LITERATURE REVIEW
+    # CHAPTER 3: LITERATURE REVIEW
     # =============================================================
-    add_chapter_heading("3. LITERATURE REVIEW", page_break_before=False)
+    add_chapter_heading("3. LITERATURE REVIEW")
     
     add_section_heading("3.1 Reviewed Literature")
     add_body_p("To establish a rigorous theoretical and empirical foundation for VoxFlow, we conducted a systematic literature survey of 13 key peer-reviewed research papers spanning speech disfluency datasets, acoustic modeling, deep learning architectures, and self-supervised speech representations.")
@@ -498,19 +507,19 @@ def create_report():
 
     add_section_heading("3.2 Comparison of Existing Approaches")
     add_body_p("A comparative synthesis of existing approaches highlights a clear progression in the field: early foundational efforts (such as UCLASS [4] and FluencyBank [3]) established shared clinical corpora, while subsequent research (such as FluentNet [5] and StutterNet [6]) proved that deep neural networks operating on spectrograms and MFCCs could detect disfluencies automatically. More recently, self-supervised foundation models (wav2vec 2.0 [12] and HuBERT [13]) fine-tuned on stuttering datasets (Bayerl et al. [9], [11]) significantly boosted classification accuracy over handcrafted features.")
-    add_body_p("However, across all reviewed literature, existing systems operate almost exclusively on isolated, pre-trimmed 3-second audio clips. None of the reviewed approaches combine physical microphone capture, error-checked serial transport, sliding-window session inference, temporal event consolidation (to prevent multi-counting across overlapping windows), and relational session persistence in a single deployable software-hardware framework. VoxFlow directly bridges this gap.")
+    add_body_p("However, across all reviewed literature, existing systems operate almost exclusively on isolated, pre-trimmed 3-second audio clips. In the set of studies reviewed, we did not find a system that combines physical microphone capture, error-checked serial transport, sliding-window session inference, temporal event consolidation (to prevent multi-counting across overlapping windows), and relational session persistence in a single deployable software-hardware framework. VoxFlow directly addresses this gap.")
 
     add_section_heading("3.3 Research Gap from Literature")
     add_body_p("The synthesis of reviewed literature reveals three fundamental gaps:")
     add_bullet_p("System-Level Integration Gap:", "Academic studies focus heavily on machine learning model architectures evaluated in Jupyter notebooks, leaving the physical audio capture, real-time transport, and user interface unaddressed.")
     add_bullet_p("Continuous Session Processing Gap:", "Classifiers designed for 3-second clips cannot be naively deployed on continuous recordings without multi-window slicing and temporal event aggregation to merge redundant detections.")
-    add_bullet_p("Longitudinal Tracking Gap:", "Clinicians require structured historical tracking across successive sessions to evaluate intervention efficacy, which existing clip-level benchmarks do not support.")
+    add_bullet_p("Longitudinal Tracking Gap:", "Therapists require structured historical tracking across successive sessions to evaluate intervention efficacy, which existing clip-level benchmarks do not support.")
     add_body_p("VoxFlow resolves these gaps by integrating low-cost ESP32 hardware streaming, the error-checked VXF1 protocol, speaker-exclusive HuBERT-D modeling, temporal event aggregation, and SQLite-backed Streamlit visual analytics.")
 
     # =============================================================
-    # PAGE 7: CHAPTER 4: FEASIBILITY STUDY
+    # CHAPTER 4: FEASIBILITY STUDY
     # =============================================================
-    add_chapter_heading("4. FEASIBILITY STUDY", page_break_before=False)
+    add_chapter_heading("4. FEASIBILITY STUDY")
     
     add_section_heading("4.1 Technical Feasibility")
     add_body_p("The technical feasibility of VoxFlow was verified by implementing and testing every subsystem across the complete pipeline: ESP32 embedded firmware, Python serial bridge, Flask REST API, HuBERT-D inference engine, SQLite database, and Streamlit dashboard. The backend runs on standard consumer PC hardware, utilizing CUDA GPU acceleration when available and seamlessly falling back to multi-threaded CPU execution. All software dependencies are open-source and cross-platform.")
@@ -522,7 +531,7 @@ def create_report():
     add_body_p("The software architecture is built on Python 3.11+ using proven, industry-standard frameworks: Flask for RESTful service endpoints, PyTorch and Hugging Face Transformers for HuBERT-D model execution, SQLite3 for local zero-configuration relational persistence, and Streamlit for rapid, interactive visual analytics. Automated testing is managed via Python's standard unittest framework.")
 
     add_section_heading("4.4 Dataset and Data Feasibility")
-    add_body_p("Model development is based on the SEP-28k [2] and FluencyBank [3] datasets. To ensure clinical validity and eliminate label noise, the raw dataset was rigorously audited. Clips marked by annotators as poor audio quality, no speech, or music were filtered out. Multi-label ground truth was assigned using majority voting (at least 2 out of 3 annotators in agreement). To ensure uncompromised generalization, the resulting 30,999 clips were partitioned into strict speaker-exclusive splits across 519 distinct speakers, ensuring zero speaker overlap between training, validation, and testing sets, as summarized in Table 1.")
+    add_body_p("Model development is based on the SEP-28k [2] and FluencyBank [3] datasets. To ensure validity and eliminate label noise, the raw dataset was rigorously audited. Clips marked by annotators as poor audio quality, no speech, or music were filtered out. Multi-label ground truth was assigned using majority voting (at least 2 out of 3 annotators in agreement). To ensure uncompromised generalization, the resulting 30,999 clips were partitioned into strict speaker-exclusive splits across 519 distinct speakers, ensuring zero speaker overlap between training, validation, and testing sets, as summarized in Table 1.")
 
     add_caption("Table 1. Dataset Summary and Speaker-Exclusive Splits")
     add_styled_table(
@@ -547,13 +556,13 @@ def create_report():
     add_bullet_p("Module 1 — Hardware Capture Unit:", "ESP32 Dev Module and INMP441 digital MEMS microphone with FreeRTOS dual-core task scheduling, capturing 16 kHz 16-bit mono audio and encapsulating it into VXF1 frames.")
     add_bullet_p("Module 2 — Serial Bridge & WAV Reconstructor:", "Python serial receiver that synchronizes frame headers, verifies CRC32 checksums, detects missing packets via sequence numbers, and writes monolithic session WAV files.")
     add_bullet_p("Module 3 — Backend API & AI Inference Engine:", "Flask REST backend executing audio validation, 3.0-second sliding-window generation with 1.0-second hop, multi-label HuBERT-D inference, and temporal event aggregation.")
-    add_bullet_p("Module 4 — Clinical Visual Analytics Dashboard:", "Streamlit-based user interface enabling real-time session capture, audio upload, timeline inspection, disfluency metrics display, and longitudinal history review.")
+    add_bullet_p("Module 4 — Session Visual Analytics Dashboard:", "Streamlit-based user interface enabling real-time session capture, audio upload, timeline inspection, disfluency metrics display, and longitudinal history review.")
     add_body_p("All four planned modules were fully implemented, integrated, and verified in the final codebase.")
 
     # =============================================================
-    # PAGE 8 & 9: CHAPTER 5: SYSTEM REQUIREMENTS
+    # CHAPTER 5: SYSTEM REQUIREMENTS
     # =============================================================
-    add_chapter_heading("5. SYSTEM REQUIREMENTS", page_break_before=False)
+    add_chapter_heading("5. SYSTEM REQUIREMENTS")
     
     add_section_heading("5.1 Hardware Requirements")
     add_body_p("The hardware components required for the VoxFlow session capture system are detailed in Table 2.")
@@ -592,7 +601,7 @@ def create_report():
         col_widths=[1.8, 1.0, 3.2]
     )
 
-    add_section_heading("5.3 Functional Requirements", page_break_before=False)
+    add_section_heading("5.3 Functional Requirements")
     add_body_p("The functional requirements governing system behavior are enumerated in Table 4.")
     
     add_caption("Table 4. Functional Requirements (FR)")
@@ -604,7 +613,7 @@ def create_report():
             ["FR-03: Frame Verification", "The serial bridge shall verify frame magic headers, consecutive sequence numbers, and CRC32 checksums."],
             ["FR-04: WAV Reconstruction", "The bridge shall reconstruct received frames into a valid 16 kHz mono WAV file upon session completion."],
             ["FR-05: Windowing & AI Inference", "The backend shall segment session audio into 3.0 s windows (1.0 s hop) and predict disfluency probabilities via HuBERT-D."],
-            ["FR-06: Event Aggregation", "The backend shall aggregate consecutive/proximate window detections (gap <= 1.5 s) into unified clinical events."],
+            ["FR-06: Event Aggregation", "The backend shall aggregate consecutive/proximate window detections (gap <= 1.5 s) into unified detected events."],
             ["FR-07: Relational Persistence", "The database shall store complete session records, per-window predictions, and aggregated events."],
             ["FR-08: Dashboard Visualization", "The dashboard shall display session timelines, per-class event tallies, disfluency rates, and historical trends."]
         ],
@@ -618,10 +627,10 @@ def create_report():
     add_styled_table(
         ["Requirement ID", "Non-Functional Requirement Description"],
         [
-            ["NFR-01: Low Latency", "End-to-end session analysis (validation, inference, aggregation, database write) shall complete in < 5.0 s for a 60 s recording on GPU."],
+            ["NFR-01: Low Latency", "End-to-end session analysis (validation, inference, aggregation, database write) shall complete promptly on local hardware without cloud round-trip delays."],
             ["NFR-02: Data Integrity", "Zero undetected frame corruption: all corrupted or dropped serial frames shall be flagged via CRC32 and sequence checks."],
             ["NFR-03: Portability", "The software backend shall run locally on Windows, Linux, and macOS without mandatory cloud connectivity."],
-            ["NFR-04: Privacy & Security", "All patient audio recordings, transcripts, and analysis metrics shall remain stored locally on the host machine."],
+            ["NFR-04: Privacy & Security", "All audio recordings, transcripts, and analysis metrics shall remain stored locally on the host machine."],
             ["NFR-05: Modularity", "Subsystems (bridge, API, model, UI) shall remain decoupled, communicating exclusively via standard protocols (VXF1, REST, SQL)."],
             ["NFR-06: Robustness", "The API shall gracefully reject invalid audio (silence, non-16kHz, out-of-bounds duration) returning descriptive HTTP 422 errors."]
         ],
@@ -629,9 +638,9 @@ def create_report():
     )
 
     # =============================================================
-    # PAGE 10: CHAPTER 6: SYSTEM DESIGN (6.1 & Fig. 1)
+    # CHAPTER 6: SYSTEM DESIGN
     # =============================================================
-    add_chapter_heading("6. SYSTEM DESIGN", page_break_before=False)
+    add_chapter_heading("6. SYSTEM DESIGN")
     
     add_section_heading("6.1 Overall Architecture Design")
     add_body_p("The VoxFlow system follows a modular, four-tier architecture spanning embedded hardware capture, serial communication bridging, REST backend processing, and visual analytics presentation, as illustrated in Fig. 1. Audio originates at the INMP441 MEMS microphone, where sound waves are digitized into 16 kHz 16-bit mono PCM. The ESP32 captures audio via I2S, encapsulates it into VXF1 frames, and transmits it over USB-UART to the host PC. The Python serial bridge receives frames, validates CRC32 checksums, and reconstructs a single monolithic WAV file. The Flask REST backend manages audio validation, sliding-window generation, HuBERT-D multi-label inference, and temporal event aggregation. Session metadata and results are stored in SQLite and rendered on the Streamlit dashboard.")
@@ -642,10 +651,7 @@ def create_report():
         width_inches=3.2
     )
 
-    # =============================================================
-    # PAGE 11: 6.2 UML Design & Fig. 2 Use Case
-    # =============================================================
-    add_section_heading("6.2 UML Design", page_break_before=False)
+    add_section_heading("6.2 UML Design")
     add_body_p("To formally model system behavior, interactions, and structural relationships, a comprehensive suite of Unified Modeling Language (UML) diagrams was developed.")
     add_body_p("The Use Case Diagram (Fig. 2) illustrates the primary user interactions supported by VoxFlow: starting/stopping hardware recording, uploading pre-recorded WAV sessions, viewing session analysis timelines, and reviewing longitudinal disfluency trends.")
     
@@ -655,9 +661,6 @@ def create_report():
         width_inches=3.6
     )
 
-    # =============================================================
-    # PAGE 12: Fig. 3 Class Diagram
-    # =============================================================
     add_body_p("The Class Diagram (Fig. 3) outlines the object-oriented structure of the software backend, including the SerialBridge, SessionEngine, HubertInferenceEngine, EventAggregator, DatabaseManager, and DashboardController classes.", indent=False)
     add_figure_image(
         r"c:\Users\user\Downloads\voxbox\v2\VoxFlow_uml\VoxFlow_uml\png\uml\02_class.png",
@@ -665,9 +668,6 @@ def create_report():
         width_inches=5.2
     )
 
-    # =============================================================
-    # PAGE 13: Fig. 4 Speech Session Streaming Sequence
-    # =============================================================
     add_body_p("The Speech Session Streaming Sequence Diagram (Fig. 4) depicts the hardware-bridge communication lifecycle, including port initialization, PING/PONG handshaking, continuous VXF1 frame transmission, CRC verification, and terminal frame finalization.", indent=False)
     add_figure_image(
         r"c:\Users\user\Downloads\voxbox\v2\VoxFlow_uml\VoxFlow_uml\png\uml\03_audio_sequence.png",
@@ -675,9 +675,6 @@ def create_report():
         width_inches=3.6
     )
 
-    # =============================================================
-    # PAGE 14: Fig. 5 Session Analysis Sequence
-    # =============================================================
     add_body_p("The Session Analysis Sequence Diagram (Fig. 5) details the backend workflow upon receiving a session analyze request: audio validation, window slicing, HuBERT-D inference, event aggregation, database storage, and JSON response generation.", indent=False)
     add_figure_image(
         r"c:\Users\user\Downloads\voxbox\v2\VoxFlow_uml\VoxFlow_uml\png\uml\04_prediction_sequence.png",
@@ -685,9 +682,6 @@ def create_report():
         width_inches=5.2
     )
 
-    # =============================================================
-    # PAGE 15: Fig. 6 Activity Diagram
-    # =============================================================
     add_body_p("The Activity Diagram (Fig. 6) models the unified operational workflow, illustrating how both live hardware capture and direct file upload pathways converge into standardized audio validation, inference, and visualization.", indent=False)
     add_figure_image(
         r"c:\Users\user\Downloads\voxbox\v2\VoxFlow_uml\VoxFlow_uml\png\uml\06_activity.png",
@@ -695,9 +689,6 @@ def create_report():
         width_inches=1.8
     )
 
-    # =============================================================
-    # PAGE 16: Fig. 7 State Machine Diagram
-    # =============================================================
     add_body_p("The State Machine Diagram (Fig. 7) defines the operational states of the capture unit and backend, transitioning from IDLE to WAITING_FOR_START, RECORDING, RECONSTRUCTING, ANALYZING, and COMPLETE.", indent=False)
     add_figure_image(
         r"c:\Users\user\Downloads\voxbox\v2\VoxFlow_uml\VoxFlow_uml\png\uml\07_state_machine.png",
@@ -705,10 +696,10 @@ def create_report():
         width_inches=3.2
     )
 
-    # =============================================================
-    # PAGE 17: 6.4 Deployment Design & Fig. 8 Deployment Diagram
-    # =============================================================
-    add_section_heading("6.4 Deployment Design", page_break_before=False)
+    add_section_heading("6.3 Hardware and Firmware Design")
+    add_body_p("The firmware is implemented in C++ using the ESP32 Arduino Core under FreeRTOS. To prevent audio buffer underruns, a dedicated producer task (I2SCaptureTask) pinned to Core 0 reads 1,024-sample chunks from the I2S DMA buffer and pushes them into a FreeRTOS ring queue. The main consumer loop running on Core 1 pops audio frames from the queue, constructs the 16-byte VXF1 header, calculates CRC32 checksums, and transmits framed packets over USB-UART.")
+
+    add_section_heading("6.4 Deployment Design")
     add_body_p("The Deployment Diagram (Fig. 8) details the physical execution nodes. The ESP32 capture unit acts as an edge recording peripheral connected via USB-UART to the host workstation. The host workstation runs the Python runtime hosting the Serial Bridge, Flask REST API (port 5000), Streamlit UI (port 8501), and local SQLite database. No external cloud infrastructure is required at runtime.")
     add_figure_image(
         r"c:\Users\user\Downloads\voxbox\v2\VoxFlow_uml\VoxFlow_uml\png\uml\09_deployment.png",
@@ -716,11 +707,8 @@ def create_report():
         width_inches=3.2
     )
 
-    # =============================================================
-    # PAGE 18: 6.5 Database Design & Fig. 9 ER Diagram
-    # =============================================================
-    add_section_heading("6.5 Database Design", page_break_before=False)
-    add_body_p("The Entity-Relationship (ER) Diagram (Fig. 9) illustrates the relational database schema in app/voxflow.db. The schema consists of three normalized tables: (1) sessions, storing session-level metadata, duration, and summary event counts; (2) window_predictions, storing per-window timestamps and probability scores for repetition, prolongation, and block; and (3) aggregated_events, storing consolidated clinical events with start/end bounds, duration, and peak confidence.")
+    add_section_heading("6.5 Database Design")
+    add_body_p("The Entity-Relationship (ER) Diagram (Fig. 9) illustrates the relational database schema in app/voxflow.db. The schema consists of three normalized tables: (1) sessions, storing session-level metadata, duration, and summary event counts; (2) window_predictions, storing per-window timestamps and probability scores for repetition, prolongation, and block; and (3) aggregated_events, storing consolidated detected events with start/end bounds, duration, and peak confidence.")
     add_figure_image(
         r"c:\Users\user\Downloads\voxbox\v2\VoxFlow_uml\VoxFlow_uml\png\uml\11_er_database.png",
         "Fig. 9. ER / Database Diagram.",
@@ -728,12 +716,12 @@ def create_report():
     )
 
     # =============================================================
-    # PAGE 19: CHAPTER 7: METHODOLOGY (7.1, 7.2 & Fig. 10)
+    # CHAPTER 7: METHODOLOGY
     # =============================================================
-    add_chapter_heading("7. METHODOLOGY", page_break_before=False)
+    add_chapter_heading("7. METHODOLOGY")
     
     add_section_heading("7.1 Identified Methodologies & End-to-End Workflow Overview")
-    add_body_p("The VoxFlow methodology establishes a complete 12-step processing pipeline from physical acoustic capture to visual clinical analytics: (1) physical acoustic digitization, (2) I2S DMA buffering, (3) VXF1 framing, (4) serial transmission, (5) frame reception and CRC verification, (6) WAV file reconstruction, (7) audio validation, (8) sliding-window segmentation, (9) HuBERT-D neural inference, (10) temporal event aggregation, (11) relational database persistence, and (12) visual dashboard analytics.")
+    add_body_p("The VoxFlow methodology establishes a complete 12-step processing pipeline from physical acoustic capture to visual session analytics: (1) physical acoustic digitization, (2) I2S DMA buffering, (3) VXF1 framing, (4) serial transmission, (5) frame reception and CRC verification, (6) WAV file reconstruction, (7) audio validation, (8) sliding-window segmentation, (9) HuBERT-D neural inference, (10) temporal event aggregation, (11) relational database persistence, and (12) visual dashboard analytics.")
 
     add_section_heading("7.2 Hardware Capture and Framing")
     add_body_p("The Hardware Capture and Transmission Flow is illustrated in Fig. 10. The ESP32 samples audio at 16,000 Hz (16-bit mono PCM). Every 64 ms (1,024 samples = 2,048 bytes), the firmware constructs a VXF1 packet containing a 16-byte header: 4-byte Magic (0x56 0x58 0x46 0x31 / 'VXF1'), 4-byte Sequence Number (0, 1, 2...), 4-byte Payload Length (2,048 bytes), and 4-byte CRC32 checksum, as shown in Table 6. A terminal frame (Length = 0, Sequence = 0xFFFFFFFF) signals normal recording completion.")
@@ -757,19 +745,13 @@ def create_report():
         width_inches=1.8
     )
 
-    # =============================================================
-    # PAGE 20: 7.3 Serial Bridge & 7.4 Audio Preprocessing
-    # =============================================================
-    add_section_heading("7.3 Serial Bridge and WAV Reconstruction", page_break_before=False)
+    add_section_heading("7.3 Serial Bridge and WAV Reconstruction")
     add_body_p("The Python serial bridge (hardware/bridge/serial_bridge.py) reads incoming bytes from the COM port at 460,800 baud. It searches for the 4-byte 'VXF1' magic header, unpacks the 16-byte header, verifies that the sequence number matches the expected increment, and computes the CRC32 checksum over the payload using zlib.crc32. Valid payloads are accumulated in a byte buffer. Upon receiving the terminal frame, the bridge packages the buffer into a standardized WAV file (16 kHz, 16-bit mono) using soundfile and writes it to recordings/.")
 
     add_section_heading("7.4 Audio Preprocessing and Windowing")
     add_body_p("Upon receiving a WAV file, the backend validates audio parameters (16 kHz sampling rate, mono channel, duration between 3.0 and 60.0 seconds, RMS silence threshold >= 0.0001). The audio waveform is normalized to [-1.0, 1.0] and sliced into 3.0-second sliding windows (48,000 samples) with a 1.0-second hop (16,000 samples). For an audio of duration D seconds, the number of windows generated is N = floor(D - 3.0) + 1. For example, a 10-second recording generates exactly 8 sliding windows.")
 
-    # =============================================================
-    # PAGE 21: 7.5 HuBERT-D Fluency Prediction & Fig. 11
-    # =============================================================
-    add_section_heading("7.5 HuBERT-D Fluency Prediction", page_break_before=False)
+    add_section_heading("7.5 HuBERT-D Fluency Prediction")
     add_body_p("The HuBERT-D Speech Fluency Prediction Flow is illustrated in Fig. 11. Each 3-second audio window is processed by HuBERT-D (facebook/hubert-base-ls960 backbone fine-tuned with a multi-label classification head). The model outputs a 3-dimensional logit vector passed through a sigmoid activation function, yielding independent probabilities: P_rep, P_pro, and P_blk. Predictions are thresholded using calibrated validation cutoffs: Repetition = 0.77, Prolongation = 0.79, and Block = 0.57.")
 
     add_figure_image(
@@ -778,14 +760,11 @@ def create_report():
         width_inches=2.0
     )
 
-    # =============================================================
-    # PAGE 22: 7.6 Event Aggregation, 7.7 Summaries, 7.8 Dashboard & Fig. 12
-    # =============================================================
-    add_section_heading("7.6 Temporal Event Aggregation", page_break_before=False)
-    add_body_p("Because sliding windows overlap by 2.0 seconds, a single disfluent event spanning across adjacent windows produces multiple positive window detections. VoxFlow applies a temporal event aggregation algorithm (app/services/event_aggregator.py): for each disfluency class, positive windows that overlap or lie within a merge gap threshold (gap <= 1.5 seconds) are merged into a single clinical event. The event start time is set to the first window's start, the end time to the last window's end, and the event confidence to the maximum probability observed across supporting windows.")
+    add_section_heading("7.6 Temporal Event Aggregation")
+    add_body_p("Because sliding windows overlap by 2.0 seconds, a single disfluent event spanning across adjacent windows produces multiple positive window detections. VoxFlow applies a temporal event aggregation algorithm (app/services/event_aggregator.py): for each disfluency class, positive windows that overlap or lie within a merge gap threshold (gap <= 1.5 seconds) are merged into a single detected disfluency event. The event start time is set to the first window's start, the end time to the last window's end, and the event confidence to the maximum probability observed across supporting windows.")
 
     add_section_heading("7.7 Session Summaries and Metrics")
-    add_body_p("Following event aggregation, the backend computes session-level summary statistics: total recording duration, effective speech duration, total disfluency count, disfluency rate (events per minute of speech), and per-class event breakdowns. These summary metrics provide speech therapists with immediate, standardized clinical indices.")
+    add_body_p("Following event aggregation, the backend computes session-level summary statistics: total recording duration, effective speech duration, total disfluency count, disfluency rate (events per minute of speech), and per-class event breakdowns. These summary metrics provide immediate, standardized session indices.")
 
     add_section_heading("7.8 Dashboard and Visual Analytics")
     add_body_p("The Prediction Storage and Dashboard Flow is illustrated in Fig. 12. Session metrics, window predictions, and aggregated events are persisted to SQLite. The Streamlit dashboard queries these records to render interactive Plotly timeline charts (showing exactly where repetitions, prolongations, and blocks occurred), per-class distribution bar charts, and longitudinal trend plots tracking disfluency rates across multiple sessions.")
@@ -796,10 +775,7 @@ def create_report():
         width_inches=3.0
     )
 
-    # =============================================================
-    # PAGE 23: 7.9 Algorithms 1, 2, 3
-    # =============================================================
-    add_section_heading("7.9 Algorithms", page_break_before=False)
+    add_section_heading("7.9 Algorithms")
     add_body_p("The core operational logic of VoxFlow is formally defined by three primary algorithms implemented in the repository:")
 
     add_algorithm_box(
@@ -860,9 +836,9 @@ def create_report():
     )
 
     # =============================================================
-    # PAGE 24: CHAPTER 8: HARDWARE IMPLEMENTATION (8.1, 8.2, Fig. 13 & 8.3)
+    # CHAPTER 8: HARDWARE IMPLEMENTATION
     # =============================================================
-    add_chapter_heading("8. HARDWARE IMPLEMENTATION", page_break_before=False)
+    add_chapter_heading("8. HARDWARE IMPLEMENTATION")
     
     add_section_heading("8.1 Hardware Development & Component Selection")
     add_body_p("The hardware capture subsystem is developed around the ESP32 Dev Module (ESP-WROOM-32) and the INMP441 MEMS digital microphone. The ESP32 was chosen for its integrated hardware I2S peripheral, dual-core architecture allowing decoupled audio acquisition and serial transmission, and high-speed USB-UART bridge. The INMP441 was selected because it provides digital pulse code modulation (PCM) output via I2S, offering a high Signal-to-Noise Ratio (61 dBA) and flat frequency response without the noise vulnerabilities of analogue electret capsules.")
@@ -873,7 +849,7 @@ def create_report():
     add_figure_image(
         r"c:\Users\user\Downloads\voxbox\v2\VoxFlow_uml\VoxFlow_uml\png\circuit_design\circuit_design.png",
         "Fig. 13. ESP32–INMP441 Circuit Diagram.",
-        width_inches=3.6
+        width_inches=4.8
     )
 
     add_caption("Table 7. ESP32 Pin Assignment and Peripheral Connections")
@@ -901,9 +877,9 @@ def create_report():
     add_bullet_p("Safety Stop Mechanisms:", "Recording automatically terminates upon: (1) physical STOP button press (GPIO33), (2) receipt of ASCII 'S' command from host serial, or (3) reaching exactly 960,000 samples (60.00 seconds).")
 
     # =============================================================
-    # PAGE 25: CHAPTER 9: SOFTWARE IMPLEMENTATION (9.1 to 9.7)
+    # CHAPTER 9: SOFTWARE IMPLEMENTATION
     # =============================================================
-    add_chapter_heading("9. SOFTWARE IMPLEMENTATION", page_break_before=False)
+    add_chapter_heading("9. SOFTWARE IMPLEMENTATION")
     
     add_section_heading("9.1 Software Development Overview")
     add_body_p("The VoxFlow software ecosystem is organized into a modular architecture comprising the Serial Bridge, Session Processing Engine, HuBERT-D Inference Engine, Temporal Event Aggregator, Flask REST Backend, and Streamlit Dashboard.")
@@ -918,25 +894,28 @@ def create_report():
     add_body_p("The inference engine (inference/inference_pipeline.py) loads the fine-tuned HuBERT-D model checkpoint. Audio windows are padded or trimmed to exactly 48,000 samples, normalized, and converted to PyTorch tensors. Forward inference produces logits that are mapped via sigmoid into per-class probabilities for repetition, prolongation, and block.")
 
     add_section_heading("9.5 Temporal Event Aggregator")
-    add_body_p("The event aggregator (app/services/event_aggregator.py) implements the temporal clustering algorithm described in Algorithm 3. It groups contiguous positive window activations within a 1.5-second merge threshold into single, consolidated clinical events, eliminating duplicate counts across overlapping analysis windows.")
+    add_body_p("The event aggregator (app/services/event_aggregator.py) implements the temporal clustering algorithm described in Algorithm 3. It groups contiguous positive window activations within a 1.5-second merge threshold into single, consolidated detected events, eliminating duplicate counts across overlapping analysis windows.")
 
     add_section_heading("9.6 Flask REST API")
     add_body_p("The REST backend (server.py, app/api/session_routes.py) provides structured HTTP endpoints for client applications:")
     add_bullet_p("GET /api/v1/health:", "Returns system health, active device, and database status.")
     add_bullet_p("GET /api/v1/model/info:", "Returns loaded model architecture, checkpoint path, and calibrated detection thresholds.")
-    add_bullet_p("POST /api/v1/session/start & stop:", "Controls hardware recording lifecycle via the serial bridge.")
-    add_bullet_p("POST /api/v1/session/analyze:", "Accepts a WAV audio file or session ID, performs end-to-end analysis, and returns complete session metrics and events.")
-    add_bullet_p("GET /api/v1/sessions & /api/v1/session/<id>:", "Retrieves stored session records, event breakdowns, and historical data.")
+    add_bullet_p("POST /api/v1/session/start:", "Initializes a new recording session and returns session ID.")
+    add_bullet_p("POST /api/v1/session/<session_id>/audio:", "Uploads raw audio stream chunks for active session buffering.")
+    add_bullet_p("POST /api/v1/session/<session_id>/stop:", "Terminates the recording session and persists session audio.")
+    add_bullet_p("POST /api/v1/session/<session_id>/analyze:", "Validates session audio, generates sliding windows, executes HuBERT-D inference, aggregates detected events, and persists records.")
+    add_bullet_p("GET /api/v1/session/<session_id>:", "Retrieves session metadata, window probabilities, and detected events.")
+    add_bullet_p("GET /api/v1/sessions:", "Retrieves stored session history for longitudinal trend analytics.")
 
     add_section_heading("9.7 Streamlit Dashboard")
-    add_body_p("The frontend dashboard (dashboard.py, app/ui/streamlit_app.py) provides a modern clinical visual analytics interface with four functional pages: (1) Live Hardware Capture, (2) Audio File Analysis, (3) Session Inspection & Timeline, and (4) Longitudinal History & Trends.")
+    add_body_p("The frontend dashboard (dashboard.py, app/ui/streamlit_app.py) provides an interactive visual analytics interface with four functional pages: (1) Live Hardware Capture, (2) Audio File Analysis, (3) Session Inspection & Timeline, and (4) Longitudinal History & Trends.")
+
+    add_section_heading("9.8 Data Analytics and Computer Science Integration")
+    add_body_p("VoxFlow represents an advanced integration of modern computer science disciplines: digital signal processing (I2S DMA sampling, audio normalization, sliding-window framing), self-supervised deep learning (Transformer-based acoustic representation learning and multi-label inference), algorithmic event processing (temporal clustering and merge-gap aggregation), relational database engineering (normalized SQLite schema with referential integrity), RESTful web architecture (decoupled HTTP microservices), and visual analytics (interactive time-series charting and longitudinal trend tracking). The current prototype does not use a cloud service at runtime. It runs locally on the host PC, ensuring that all audio recordings and analysis results remain stored on the local system without cloud hosting costs.")
 
     # =============================================================
-    # PAGE 26: 9.8 CS INTEGRATION & CHAPTER 10: TESTING (10.1)
+    # CHAPTER 10: TESTING AND VALIDATION
     # =============================================================
-    add_section_heading("9.8 Data Analytics and Computer Science Integration", page_break_before=False)
-    add_body_p("VoxFlow represents an advanced integration of modern computer science disciplines: digital signal processing (I2S DMA sampling, audio normalization, sliding-window framing), self-supervised deep learning (Transformer-based acoustic representation learning and multi-label inference), algorithmic event processing (temporal clustering and merge-gap aggregation), relational database engineering (normalized SQLite schema with referential integrity), RESTful web architecture (decoupled HTTP microservices), and visual analytics (interactive time-series charting and longitudinal trend tracking). The current prototype does not use a cloud service at runtime. It runs locally on the PC, ensuring patient privacy, low latency, and zero cloud hosting costs.")
-
     add_chapter_heading("10. TESTING AND VALIDATION")
     
     add_section_heading("10.1 Software Testing")
@@ -956,30 +935,27 @@ def create_report():
         col_widths=[2.0, 2.5, 0.8, 0.9]
     )
 
-    # =============================================================
-    # PAGE 27: 10.2 to 10.6 (Physical Validation, Demo, Deployment)
-    # =============================================================
-    add_section_heading("10.2 API and Bridge Validation", page_break_before=False)
+    add_section_heading("10.2 API and Bridge Validation")
     add_body_p("API validation verified that malformed audio inputs are correctly identified and rejected: a 2.0-second WAV file (below the 3.0 s minimum) is rejected with HTTP 422 Unprocessable Entity, silent audio (RMS < 0.0001) is rejected with HTTP 422, and valid 5.0-second and 60.0-second WAV files successfully return HTTP 200 with structured JSON analysis results. Bridge validation confirmed that simulated corrupt VXF1 frames (corrupted CRC32 or skipped sequence numbers) are rejected immediately without writing corrupt audio to disk.")
 
     add_section_heading("10.3 Model Evaluation")
     add_body_p("HuBERT-D was evaluated on the held-out test split of 6,812 clips across 249 unseen speakers. Predictions were assessed using Macro F1, Mean ROC-AUC, and per-class F1 scores, confirming superior generalization over baseline models.")
 
     add_section_heading("10.4 Physical Hardware Validation")
-    add_body_p("To maintain strict scientific honesty, software test results and physical hardware validation are explicitly separated. Physical hardware validation confirms electrical and acoustic functionality on the assembled prototype (Table 9).")
+    add_body_p("To maintain strict scientific honesty, software test results and physical hardware validation are explicitly separated. While the firmware and circuit design implement all physical hardware controls, saved physical test evidence (such as oscilloscope recordings, physical serial captures, and physical audio archives) was not recorded in the repository. Synthetic VXF1 tests verify the protocol logic in software, but physical hardware evidence was not recorded (Table 9).")
 
-    add_caption("Table 9. Physical Hardware Validation Status")
+    add_caption("Table 9. Physical Hardware Implementation and Evidence Status")
     add_styled_table(
-        ["Validation Check", "Procedure & What Was Checked", "Hardware Status"],
+        ["Hardware Subsystem", "Design & Implementation Detail", "Evidence Status in Repository"],
         [
-            ["I2S Bit Clock & WS", "Verified 512 kHz SCK and 16 kHz WS frame sync on GPIO26/GPIO25", "VERIFIED"],
-            ["Microphone Audio Sampling", "Recorded spoken speech with INMP441; verified clean 16 kHz PCM waveform", "VERIFIED"],
-            ["VXF1 Serial Streaming", "Streamed audio at 460,800 baud over USB-UART with zero dropped frames", "VERIFIED"],
-            ["START / STOP Buttons", "Tested physical push buttons on GPIO27 and GPIO33 for session control", "VERIFIED"],
-            ["Status LED Indication", "Verified solid standby light and 2 Hz blinking during active recording", "VERIFIED"],
-            ["60-Second Auto-Stop", "Verified firmware auto-terminates at 960,000 samples and sends terminal frame", "VERIFIED"]
+            ["I2S Bit Clock & WS", "Firmware configures 512 kHz SCK and 16 kHz WS frame sync on GPIO26/GPIO25", "Implemented in firmware; physical evidence not recorded"],
+            ["Microphone Audio Sampling", "INMP441 wired to ESP32 I2S pins for 16 kHz 16-bit mono PCM capture", "Implemented in hardware design; physical evidence not recorded"],
+            ["VXF1 Serial Streaming", "Protocol logic checks CRC32 checksums and sequential sequence numbers", "Verified in software/synthetic tests; physical logs not recorded"],
+            ["START / STOP Buttons", "Active LOW buttons on GPIO27 and GPIO33 implemented with internal pull-ups", "Implemented in firmware; physical evidence not recorded"],
+            ["Status LED Indication", "GPIO4 pin drive logic (solid standby, 2 Hz blinking during recording)", "Implemented in firmware; physical evidence not recorded"],
+            ["60-Second Auto-Stop", "Firmware enforces 960,000-sample limit and sends terminal frame", "Implemented in firmware; physical evidence not recorded"]
         ],
-        col_widths=[1.8, 3.4, 1.0]
+        col_widths=[1.8, 2.5, 2.1]
     )
 
     add_section_heading("10.5 Functional Demonstration")
@@ -990,18 +966,18 @@ def create_report():
     add_bullet_p("Step 4 (Speech Capture):", "Speak into the INMP441 microphone; the LED blinks at 2 Hz as audio streams in VXF1 frames.")
     add_bullet_p("Step 5 (Stop Recording):", "Press the STOP button (GPIO33) or allow the 60-second limit to expire.")
     add_bullet_p("Step 6 (WAV Reconstruction):", "The serial bridge verifies CRC32 checksums, detects the terminal frame, and writes the WAV file.")
-    add_bullet_p("Step 7 (Automated Analysis):", "The bridge posts the WAV to /api/v1/session/analyze, triggering windowing and HuBERT-D inference.")
-    add_bullet_p("Step 8 (Event Aggregation):", "Overlapping positive windows are merged into non-redundant clinical disfluency events.")
+    add_bullet_p("Step 7 (Automated Analysis):", "The bridge posts the WAV to /api/v1/session/<session_id>/analyze, triggering windowing and HuBERT-D inference.")
+    add_bullet_p("Step 8 (Event Aggregation):", "Overlapping positive windows are merged into detected disfluency events.")
     add_bullet_p("Step 9 (Database Persistence):", "Session metadata, window probabilities, and aggregated events are stored in SQLite.")
-    add_bullet_p("Step 10 (Clinical Review):", "The dashboard automatically renders the session timeline, event metrics, and longitudinal trends.")
+    add_bullet_p("Step 10 (Session Review):", "The dashboard automatically renders the session timeline, event metrics, and longitudinal trends.")
 
     add_section_heading("10.6 Validation and Deployment")
-    add_body_p("The deployment model operates entirely on-premise on the host workstation connected to the ESP32 capture unit via USB-UART (as shown in the Deployment Diagram, Fig. 8). The software stack requires no active internet connection or cloud runtime dependencies, ensuring total patient privacy, HIPAA compliance compatibility, zero cloud service costs, and deterministic sub-second processing latency.")
+    add_body_p("The deployment model operates entirely on-premise on the host workstation connected to the ESP32 capture unit via USB-UART (as shown in the Deployment Diagram, Fig. 8). The software stack requires no active internet connection or cloud runtime dependencies. Processing executes locally on PC hardware, ensuring that all audio data remains on the local system without cloud service fees. VoxFlow is a research prototype and is not a medical diagnostic system.")
 
     # =============================================================
-    # PAGE 28: CHAPTER 11: RESULTS AND DISCUSSION
+    # CHAPTER 11: RESULTS AND DISCUSSION
     # =============================================================
-    add_chapter_heading("11. RESULTS AND DISCUSSION", page_break_before=False)
+    add_chapter_heading("11. RESULTS AND DISCUSSION")
     
     add_section_heading("11.1 Model Results")
     add_body_p("We evaluated three distinct model architectures on the speaker-exclusive test split (6,812 clips across 249 unseen speakers): (1) a traditional baseline utilizing 13 MFCCs with Support Vector Machines (MFCC + SVM), (2) a fine-tuned wav2vec 2.0 transformer, and (3) our fine-tuned HuBERT-D model. As presented in Table 10, HuBERT-D achieved the highest overall performance with a Macro F1 score of 0.4599 and a Mean ROC-AUC of 0.8099, outperforming wav2vec 2.0 (0.4498 / 0.8020) and substantially surpassing the MFCC + SVM baseline (0.3121 / 0.6633).")
@@ -1017,40 +993,43 @@ def create_report():
         col_widths=[1.7, 1.3, 0.7, 0.8, 0.7, 0.7, 0.7]
     )
 
-    add_body_p("A granular analysis of HuBERT-D per-class performance reveals that Repetition detection achieved the highest F1 score (0.5565), followed by Prolongation (0.4841), while Block detection remained the most challenging class (0.3393). This pattern aligns with clinical reality: repetitions and prolongations exhibit salient acoustic and phonetic cues (rhythmic repetition and sustained formants), whereas blocks are characterized by silent postural fixations that are acoustically difficult to distinguish from natural conversational pauses.")
+    add_body_p("A granular analysis of HuBERT-D per-class performance reveals that Repetition detection achieved the highest F1 score (0.5565), followed by Prolongation (0.4841), while Block detection remained the most challenging class (0.3393). This pattern aligns with acoustic characteristics: repetitions and prolongations exhibit salient acoustic and phonetic cues (rhythmic repetition and sustained formants), whereas blocks are characterized by silent postural fixations that are acoustically difficult to distinguish from natural conversational pauses.")
 
     add_section_heading("11.2 Session Analysis Results")
-    add_body_p("Session processing tests confirm that sliding-window analysis paired with temporal event aggregation correctly measures continuous speech sessions. Slicing a 10-second speech recording produces 8 windows; when simulated repetitions occur across windows 2, 3, and 4 (timestamps 1.0s to 6.0s), the temporal aggregator consolidates the 3 positive windows into exactly 1 unified clinical event spanning from 1.0s to 6.0s with peak confidence. This verifies that event consolidation prevents artificial inflation of clinical disfluency counts.")
+    add_body_p("Session processing tests confirm that sliding-window analysis paired with temporal event aggregation correctly measures continuous speech sessions. Slicing a 10-second speech recording produces 8 windows; when simulated repetitions occur across windows 2, 3, and 4 (timestamps 1.0s to 6.0s), the temporal aggregator consolidates the 3 positive windows into exactly 1 unified detected event spanning from 1.0s to 6.0s with peak confidence. This verifies that event consolidation prevents artificial inflation of disfluency counts.")
 
     add_section_heading("11.3 System Discussion")
     add_body_p("The experimental and operational results confirm that VoxFlow achieves its primary design goals: reliable digital capture via ESP32, error-checked transport via VXF1, robust self-supervised disfluency detection via HuBERT-D, and clean visual analytics via Streamlit. Operating entirely on local PC hardware without cloud dependencies guarantees data privacy and eliminates operational costs.")
 
     # =============================================================
-    # PAGE 29: CHAPTER 12: LIMITATIONS & FUTURE SCOPE & CHAPTER 13: CONCLUSION
+    # CHAPTER 12: LIMITATIONS AND FUTURE SCOPE
     # =============================================================
-    add_chapter_heading("12. LIMITATIONS AND FUTURE SCOPE", page_break_before=False)
+    add_chapter_heading("12. LIMITATIONS AND FUTURE SCOPE")
     
     add_section_heading("12.1 Limitations")
     add_body_p("While VoxFlow demonstrates a successful end-to-end implementation, several limitations are acknowledged:")
     add_bullet_p("Block Detection Sensitivity:", "Block detection achieved an F1 of 0.3393. Silent blocks remain difficult to separate from natural pauses without visual articulatory tracking or lexical language model context.")
     add_bullet_p("Acoustic Domain Mismatch:", "HuBERT-D was fine-tuned on podcast and studio recordings (SEP-28k / FluencyBank). Although the INMP441 provides high-quality digital audio, acoustic domain adaptation may improve performance under background noise.")
-    add_bullet_p("Single-User Local Deployment:", "The prototype is designed for a single workstation without multi-user authentication or role-based clinical access control.")
+    add_bullet_p("Single-User Local Deployment:", "The prototype is designed for a single workstation without multi-user authentication or role-based access control.")
 
     add_section_heading("12.2 Future Scope")
     add_body_p("Future development will focus on the following enhancements:")
     add_bullet_p("Multimodal Block Detection:", "Integrate facial landmark and articulatory motion tracking via webcam to detect silent oral fixations, significantly boosting block detection accuracy.")
     add_bullet_p("ASR & Lexical Integration:", "Incorporate automatic speech recognition (Whisper) to align acoustic disfluency predictions with text transcripts for syllable-accurate %SS calculation.")
-    add_bullet_p("Clinical Pilot Trials:", "Conduct formal clinical validation studies in collaboration with speech-language pathologists to assess usability and clinical utility in real therapeutic practice.")
+    add_bullet_p("Therapy Usability Studies:", "Conduct formal usability studies in collaboration with speech therapists to assess workflow utility in practical sessions.")
     add_bullet_p("Edge AI Inference:", "Explore quantized on-device inference using ESP32-S3 or low-power edge accelerators for fully standalone pocket analyzers.")
 
+    # =============================================================
+    # CHAPTER 13: CONCLUSION
+    # =============================================================
     add_chapter_heading("13. CONCLUSION")
-    add_body_p("In this project, we designed, implemented, and verified VoxFlow, an end-to-end speech fluency and disfluency session analyzer. VoxFlow bridges the gap between theoretical machine learning clip classification and practical clinical session assessment by uniting low-cost embedded hardware capture (ESP32 + INMP441), an error-checked serial protocol (VXF1 with CRC32 verification), self-supervised deep learning modeling (HuBERT-D), algorithmic temporal event aggregation, relational SQLite persistence, and an interactive Streamlit visual analytics dashboard.")
-    add_body_p("Evaluated under strict speaker-exclusive constraints across 519 distinct speakers, HuBERT-D achieved a Macro F1 score of 0.4599 and a Mean ROC-AUC of 0.8099 on unseen voices, outperforming wav2vec 2.0 (0.4498) and an MFCC + SVM baseline (0.3121). The temporal event aggregator successfully consolidates overlapping sliding-window detections into bounded clinical events, eliminating redundant multi-counting. The entire software suite passes all 38 automated unit and integration tests. Operating entirely on local PC hardware without cloud runtime dependencies, VoxFlow provides an accessible, privacy-preserving, and scientifically grounded tool for automated speech fluency analysis.")
+    add_body_p("In this project, we designed, implemented, and verified VoxFlow, an end-to-end speech fluency and disfluency session analyzer. VoxFlow bridges the gap between theoretical machine learning clip classification and practical session assessment by uniting low-cost embedded hardware capture (ESP32 + INMP441), an error-checked serial protocol (VXF1 with CRC32 verification), self-supervised deep learning modeling (HuBERT-D), algorithmic temporal event aggregation, relational SQLite persistence, and an interactive Streamlit visual analytics dashboard.")
+    add_body_p("Evaluated under strict speaker-exclusive constraints across 519 distinct speakers, HuBERT-D achieved a Macro F1 score of 0.4599 and a Mean ROC-AUC of 0.8099 on unseen voices, outperforming wav2vec 2.0 (0.4498) and an MFCC + SVM baseline (0.3121). The temporal event aggregator successfully consolidates overlapping sliding-window detections into bounded detected events, eliminating redundant multi-counting. The entire software suite passes all 38 automated unit and integration tests. Operating entirely on local PC hardware without cloud runtime dependencies, VoxFlow provides an accessible, privacy-preserving, and scientifically grounded tool for automated speech fluency analysis. VoxFlow is a research prototype and is not a medical diagnostic system.")
 
     # =============================================================
-    # PAGE 30: REFERENCES & APPENDIX A
+    # REFERENCES
     # =============================================================
-    add_chapter_heading("REFERENCES", page_break_before=False)
+    add_chapter_heading("REFERENCES")
     
     references = [
         "[1] S. A. Sheikh, M. Sahidullah, F. Hirsch and S. Ouni, \"Machine learning for stuttering identification: Review, challenges and future directions,\" Neurocomputing, vol. 514, pp. 385–402, 2022, doi: 10.1016/j.neucom.2022.10.015.",
@@ -1104,12 +1083,9 @@ def create_report():
         col_widths=[2.0, 2.2, 2.0]
     )
 
-    # =============================================================
-    # PAGE 31: APPENDIX B & APPENDIX C
-    # =============================================================
-    add_section_heading("Appendix B — Testing and Validation Evidence Status", page_break_before=False)
+    add_section_heading("Appendix B — Testing and Validation Evidence Status")
     add_body_p("All 38 automated unit and integration tests execute and pass (38/38 passed). The complete test execution logs, API response payloads (confirming HTTP 422 rejection on 2-second and silent audio, and HTTP 200 success on 5-second and 60-second audio), and UI screenshots are documented in the companion Testing & Validation Evidence document.")
-    add_body_p("Hardware validation assets (oscilloscope clock verification, physical push button triggering, status LED blinking, and 60-second automatic limit enforcement) are verified on the physical prototype.")
+    add_body_p("Hardware implementation assets (pin wiring, button triggers, LED indication, and 60-second limit logic) are implemented in the firmware and circuit schematic. Formal physical evidence (oscilloscope traces, physical button press logs, optical LED recordings, and hardware audio session logs) was not recorded in the repository.")
 
     add_section_heading("Appendix C — Supporting Documents and Repository Assets")
     add_body_p("The complete VoxFlow engineering artifacts—including ESP32 C++ firmware, Python serial bridge, Flask backend, HuBERT-D inference engine, Streamlit dashboard, automated test suites, and PlantUML diagram source models—are maintained in the official repository: https://github.com/PetaSivaNandhanReddy/voxflow.")
